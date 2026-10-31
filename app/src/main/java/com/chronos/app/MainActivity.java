@@ -355,7 +355,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 waitingForStorageMigrationBootstrap = true;
                 webView.loadDataWithBaseURL(
                         WEB_ASSET_ORIGIN,
-                        "<!doctype html><html><head><meta charset=\\\"utf-8\\\"></head><body></body></html>",
+                        "<!doctype html><html><head><meta charset=utf-8></head><body></body></html>",
                         "text/html", "UTF-8", null);
             });
         }
