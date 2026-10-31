@@ -1,3 +1,4 @@
+// Android App Bundle (AAB) de lançamento é gerado no CI pela tarefa bundleRelease.
 plugins {
     id 'com.android.application'
 }
