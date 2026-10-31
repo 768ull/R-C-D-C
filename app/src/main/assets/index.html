@@ -1790,6 +1790,55 @@
             { text: "15:30 - Conferir horas e prazos", completed: false }
         ];
 
+        // O cronograma é persistido no armazenamento local do WebView.
+        // Uma lista vazia salva é válida e nunca deve ser substituída pelas tarefas iniciais.
+        const SCHEDULE_STORAGE_KEY = 'chronos-schedule-tasks';
+        const SCHEDULE_DRAFT_KEY = 'chronos-schedule-draft';
+
+        function loadScheduleTasks() {
+            try {
+                const stored = localStorage.getItem(SCHEDULE_STORAGE_KEY);
+                if (stored === null) return;
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed) && parsed.every(task =>
+                    task && typeof task.text === 'string' &&
+                    typeof task.completed === 'boolean')) {
+                    scheduleTasks = parsed;
+                }
+            } catch (e) {
+                console.error('Não foi possível carregar o cronograma:', e);
+            }
+        }
+
+        function saveScheduleTasks() {
+            try {
+                localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(scheduleTasks));
+                return true;
+            } catch (e) {
+                console.error('Não foi possível salvar o cronograma:', e);
+                return false;
+            }
+        }
+
+        function saveScheduleDraft() {
+            try {
+                const input = document.getElementById('schedule-input');
+                if (input) localStorage.setItem(SCHEDULE_DRAFT_KEY, input.value);
+            } catch (e) {
+                console.error('Não foi possível salvar o rascunho:', e);
+            }
+        }
+
+        function restoreScheduleDraft() {
+            try {
+                const input = document.getElementById('schedule-input');
+                const draft = localStorage.getItem(SCHEDULE_DRAFT_KEY);
+                if (input && draft !== null) input.value = draft;
+            } catch (e) {
+                console.error('Não foi possível restaurar o rascunho:', e);
+            }
+        }
+
         function renderSchedule() {
             const listEl = document.getElementById('schedule-list');
             listEl.innerHTML = '';
@@ -1817,7 +1866,9 @@
             if (text === '') return;
             
             scheduleTasks.push({ text: text, completed: false });
+            saveScheduleTasks();
             inputEl.value = '';
+            try { localStorage.removeItem(SCHEDULE_DRAFT_KEY); } catch (e) {}
 
             renderSchedule();
             
@@ -1832,13 +1883,16 @@
         }
 
         function toggleScheduleItem(index) {
+            if (!scheduleTasks[index]) return;
             scheduleTasks[index].completed = !scheduleTasks[index].completed;
+            saveScheduleTasks();
             renderSchedule();
         }
 
         function deleteScheduleItem(index) {
+            if (index < 0 || index >= scheduleTasks.length) return;
             scheduleTasks.splice(index, 1);
-
+            saveScheduleTasks();
             renderSchedule();
         }
 
@@ -2165,6 +2219,36 @@
             } catch(e) { calcResultEl.textContent = 'Erro'; }
         }
 
+        // Preferências do aplicativo também são mantidas entre sessões.
+        const APP_PREFERENCES_KEY = 'chronos-app-preferences';
+
+        function saveAppPreferences() {
+            try {
+                localStorage.setItem(APP_PREFERENCES_KEY, JSON.stringify({
+                    theme: document.body.getAttribute('data-theme') || 'light',
+                    sweep: isSweepMode,
+                    sound: isSoundOn
+                }));
+            } catch (e) {
+                console.error('Não foi possível salvar as preferências:', e);
+            }
+        }
+
+        function loadAppPreferences() {
+            try {
+                const raw = localStorage.getItem(APP_PREFERENCES_KEY);
+                if (!raw) return null;
+                const prefs = JSON.parse(raw);
+                if (!prefs || typeof prefs !== 'object') return null;
+                if (typeof prefs.sweep === 'boolean') isSweepMode = prefs.sweep;
+                if (typeof prefs.sound === 'boolean') isSoundOn = prefs.sound;
+                return prefs;
+            } catch (e) {
+                console.error('Não foi possível carregar as preferências:', e);
+                return null;
+            }
+        }
+
         // --- ALTERNADOR DE TEMAS (MANUAL) ---
         themeToggle.addEventListener('click', () => {
             const currentTheme = document.body.getAttribute('data-theme');
@@ -2176,16 +2260,19 @@
 
                 themeIcon.innerHTML = '<path d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,3.5A8.5,8.5 0 1,0 20.5,12A8.5,8.5 0 0,0 12,3.5Z" />';
             }
+            saveAppPreferences();
         });
 
         sweepToggle.addEventListener('click', () => {
             isSweepMode = !isSweepMode;
             sweepToggle.classList.toggle('active', isSweepMode);
+            saveAppPreferences();
         });
 
         soundToggle.addEventListener('click', () => {
             isSoundOn = !isSoundOn;
             soundToggle.classList.toggle('active', isSoundOn);
+            saveAppPreferences();
             if (isSoundOn && audioCtx && audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
@@ -2200,15 +2287,44 @@
             if (tabTimerContent.classList.contains('active')) buildTimerList();
         });
 
-        // Inicialização automática sincronizada com as preferências do Android
+        // Restaura primeiro as escolhas anteriores; só usa o tema do Android
+        // quando o usuário ainda não escolheu um tema manualmente.
+        const savedAppPreferences = loadAppPreferences();
         const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (systemPrefersDark) {
+        const initialTheme = savedAppPreferences && (savedAppPreferences.theme === 'dark' || savedAppPreferences.theme === 'light')
+            ? savedAppPreferences.theme
+            : (systemPrefersDark ? 'dark' : 'light');
+
+        if (initialTheme === 'dark') {
             document.body.setAttribute('data-theme', 'dark');
             themeIcon.innerHTML = '<path d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,3.5A8.5,8.5 0 1,0 20.5,12A8.5,8.5 0 0,0 12,3.5Z" />';
         } else {
             document.body.setAttribute('data-theme', 'light');
             themeIcon.innerHTML = '<path d="M12,18C11.11,18 10.26,17.8 9.5,17.45C11.56,16.5 13,14.42 13,12C13,9.58 11.56,7.5 9.5,6.55C10.26,6.2 11.11,6 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z" />';
         }
+
+        // Recupera dados antes da primeira renderização para não recriar tarefas apagadas.
+        loadScheduleTasks();
+        restoreScheduleDraft();
+        document.getElementById('schedule-input').addEventListener('input', saveScheduleDraft);
+        sweepToggle.classList.toggle('active', isSweepMode);
+        soundToggle.classList.toggle('active', isSoundOn);
+
+        // Última garantia de gravação quando o app vai para segundo plano ou fecha.
+        window.addEventListener('pagehide', () => {
+            saveScheduleTasks();
+            saveScheduleDraft();
+            saveAppPreferences();
+            saveTimerEvents();
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                saveScheduleTasks();
+                saveScheduleDraft();
+                saveAppPreferences();
+                saveTimerEvents();
+            }
+        });
 
         createClockMarkings();
         populateCustomDropdown();
