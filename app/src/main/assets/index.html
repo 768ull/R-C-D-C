@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <!-- Bloqueia o zoom nativo do navegador tanto no carregamento quanto por gestos de pinça -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chronos App</title>
+    <style>
+        :root {
+            --bg-color: #eef2f3;
+            --clock-bg: #ffffff;
+            --clock-border: #d1d9e6;
+            --clock-shadow: 
+                10px 10px 20px #b8c2d3, 
+                -10px -10px 20px #ffffff;
+            --text-color: #333333;
+            --hour-hand: #222222;
+            --minute-hand: #555555;
+            --second-hand: #ff3b30;
+
+            --accent-color: #007aff; 
+            --glass-bg: rgba(255, 255, 255, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --calendar-today: var(--accent-color);
+            --calendar-today-text: #ffffff;
+            --calendar-holiday-match: #ff9f0a;
+            --calendar-holiday-text: #ffffff;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            
+            /* Cores da Calculadora, Cronograma e Novo Dropdown Customizado */
+            --calc-display-bg: #f1f5f9;
+            --calc-btn-bg: #ffffff;
+            --calc-btn-op: #ff9f0a;
+            --calc-btn-spec: #e2e8f0;
+            --input-bg: #f1f5f9;
+            --border-item: #e2e8f0;
+            --dropdown-shadow: rgba(0, 0, 0, 0.1);
+        }
+
+
+        [data-theme="dark"] {
+            --bg-color: #0f172a;
+            --clock-bg: #1e293b;
+            --clock-border: #334155;
+            --clock-shadow: 
+                10px 10px 25px #090d16, 
+                -5px -5px 20px #1e293b;
+            --text-color: #f8fafc;
+            --hour-hand: #f1f5f9;
+            --minute-hand: #cbd5e1;
+            --second-hand: #ff453a;
+            --accent-color: #38bdf8; 
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(51, 65, 85, 0.5);
+            --calendar-today: var(--accent-color);
+            --calendar-today-text: #0f172a;
+            --calendar-holiday-match: #ff9f0a;
+            --calendar-holiday-text: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.9);
+
+            
+            /* Cores da Calculadora, Cronograma e Dropdown Dark */
+            --calc-display-bg: #0f172a;
+            --calc-btn-bg: #334155;
+            --calc-btn-op: #ff9f0a;
+            --calc-btn-spec: #475569;
+            --input-bg: #0f172a;
+            --border-item: #334155;
+            --dropdown-shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            transition: background-color 0.4s ease, color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            width: 100vw;
+            padding: 10px 15px;
+            overflow: hidden; /* Impede barras de rolagem nativas globais */
+            
+            /* Bloqueia seleção de texto e menus nativos do Android */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+
+            
+            touch-action: none;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 400px;
+            height: 92vh;
+        }
+
+        /* Barra de Controle Superior */
+        .controls-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            width: 100%;
+            padding: 10px 16px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
+            gap: 8px;
+        }
+
+        .btn {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Área de Conteúdo das Abas Principais */
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+
+            justify-content: center;
+            width: 100%;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* --- ABA RELÓGIO PRINCIPAL --- */
+        .clock-wrapper {
+            position: relative;
+            width: 270px;
+            height: 270px;
+            margin: auto 0;
+        }
+
+        .clock-face {
+
+            width: 100%;
+            height: 100%;
+            background-color: var(--clock-bg);
+            border: 4px solid var(--clock-border);
+            border-radius: 50%;
+            box-shadow: var(--clock-shadow);
+            position: relative;
+            padding: 20px;
+        }
+
+        .marking {
+            position: absolute;
+            width: 3.5px;
+            height: 10px;
+            background-color: var(--text-color);
+            left: calc(50% - 1.75px);
+            top: 5px;
+            transform-origin: 1.75px 126px;
+        }
+
+
+        .marking.hours-main { height: 14px; width: 5px; left: calc(50% - 2.5px); }
+
+        .clock-numbers-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .clock-number {
+            position: absolute;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-color);
+            width: 30px;
+            height: 30px;
+            text-align: center;
+
+            line-height: 30px;
+        }
+
+        .num-12 { top: 20px; left: calc(50% - 15px); }
+        .num-1  { top: 32px; left: calc(50% - 15px + 53px); }
+        .num-2  { top: 66px; left: calc(50% - 15px + 91px); }
+        .num-3  { top: 116px; right: 20px; }
+        .num-4  { top: 166px; left: calc(50% - 15px + 91px); }
+        .num-5  { top: 202px; left: calc(50% - 15px + 53px); }
+        .num-6  { bottom: 20px; left: calc(50% - 15px); }
+        .num-7  { top: 202px; left: calc(50% - 15px - 53px); }
+        .num-8  { top: 166px; left: calc(50% - 15px - 91px); }
+        .num-9  { top: 116px; left: 20px; }
+        .num-10 { top: 66px; left: calc(50% - 15px - 91px); }
+        .num-11 { top: 32px; left: calc(50% - 15px - 53px); }
+
+        .hand {
+            position: absolute;
+            bottom: 50%;
+
+            left: 50%;
+            transform-origin: bottom center;
+            border-radius: 20px;
+            z-index: 10;
+        }
+
+        .hour-hand { width: 6px; height: 25%; background-color: var(--hour-hand); margin-left: -3px; }
+        .minute-hand { width: 4px; height: 37%; background-color: var(--minute-hand); margin-left: -2px; }
+        .second-hand { width: 2px; height: 42%; background-color: var(--second-hand); margin-left: -1px; z-index: 12; transition: none; }
+
+        .center-nut {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: var(--second-hand);
+            border: 2px solid var(--clock-bg);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+
+            transform: translate(-50%, -50%);
+            z-index: 15;
+        }
+
+        .digital-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.1rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 8px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .digital-time { font-size: 1.6rem; font-weight: 700; letter-spacing: 1px; }
+
+        .digital-date { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.8; font-weight: 500; }
+
+        .options-menu {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            width: 100%;
+            padding-bottom: 5px;
+        }
+
+        .opt-btn {
+            background-color: var(--clock-bg);
+            border: 1px solid var(--clock-border);
+            color: var(--text-color);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 500;
+
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .opt-btn.active { background-color: var(--accent-color); color: white; border-color: var(--accent-color); }
+
+        /* --- ABA CALENDÁRIO COM CRONOGRAMA --- */
+        .calendar-view-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            touch-action: pan-y;
+            gap: 12px;
+            padding-bottom: 16px;
+        }
+
+        .calendar-wrapper {
+
+            width: 100%;
+            background: var(--clock-bg);
+            border: 1px solid var(--clock-border);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: var(--clock-shadow);
+            flex-shrink: 0;
+        }
+
+        .calendar-header-clock {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px dashed var(--clock-border);
+        }
+
+        .cal-digital-time {
+
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: var(--accent-color);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.5px;
+        }
+
+        .calendar-navigation {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin: 6px 0;
+        }
+
+        .cal-nav-arrow {
+            background: var(--input-bg);
+            border: 1px solid var(--clock-border);
+            color: var(--text-color);
+
+            font-size: 1.1rem;
+            font-weight: 700;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .cal-month-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            text-transform: capitalize;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+
+        .event-selector-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 8px;
+            width: 100%;
+            position: relative;
+            }
+
+        .event-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .custom-dropdown {
+            position: relative;
+
+            width: 100%;
+        }
+
+        .dropdown-header {
+            width: 100%;
+            background: var(--input-bg);
+            color: var(--text-color);
+            border: 1px solid var(--clock-border);
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+
+        .dropdown-header::after {
+            content: "";
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid var(--text-color);
+            opacity: 0.7;
+        }
+
+        .dropdown-list {
+            position: absolute;
+            top: 105%;
+            left: 0;
+            width: 100%;
+            background: var(--clock-bg);
+            border: 1px solid var(--clock-border);
+            border-radius: 12px;
+            max-height: 160px;
+
+            overflow-y: auto;
+            z-index: 200;
+            display: none;
+            box-shadow: 0 6px 20px var(--dropdown-shadow);
+            touch-action: pan-y;
+        }
+
+        .dropdown-list.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-item);
+            display: flex;
+            justify-content: space-between;
+
+            align-items: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:active {
+            background: var(--bg-color);
+        }
+
+        .dropdown-item-date {
+            font-size: 0.75rem;
+            font-weight: 700;
+            opacity: 0.5;
+        }
+
+        .calendar-grid {
+
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+        }
+
+        .weekday-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            opacity: 0.6;
+            padding: 2px 0;
+            text-transform: uppercase;
+        }
+
+        .calendar-day {
+            font-size: 0.85rem;
+            font-weight: 600;
+            height: 30px;
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            color: var(--text-color);
+        }
+
+        .calendar-day.empty { opacity: 0; pointer-events: none; }
+
+        .calendar-day.today {
+            background-color: var(--calendar-today);
+            color: var(--calendar-today-text);
+            font-weight: 700;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        }
+
+        .calendar-day.holiday-highlight {
+            background-color: var(--calendar-holiday-match) !important;
+            color: var(--calendar-holiday-text) !important;
+            font-weight: 800;
+
+            box-shadow: 0 3px 8px rgba(255, 159, 10, 0.3);
+        }
+
+        /* Estrutura do Cronograma Diário */
+        .schedule-wrapper {
+            width: 100%;
+            background: var(--clock-bg);
+            border: 1px solid var(--clock-border);
+            border-radius: 16px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            flex-shrink: 0; 
+        }
+
+        .schedule-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .schedule-input-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+
+        .schedule-input {
+            flex-grow: 1;
+            background: var(--input-bg);
+            border: 1px solid var(--clock-border);
+            padding: 8px 12px;
+            border-radius: 10px;
+
+            font-size: 0.85rem;
+            color: var(--text-color);
+            outline: none;
+        }
+
+        .schedule-add-btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .schedule-list {
+            display: flex;
+
+            flex-direction: column;
+            gap: 6px;
+            max-height: 180px; 
+            overflow-y: auto;  
+            padding-right: 2px;
+            touch-action: pan-y;
+        }
+
+        .schedule-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: var(--bg-color);
+            border-radius: 10px;
+            border-left: 4px solid var(--accent-color);
+            font-size: 0.85rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+
+        .schedule-item.completed { border-left-color: #a0aec0; opacity: 0.6; }
+        .schedule-item.completed .schedule-text { text-decoration: line-through; }
+        .schedule-item-left { display: flex; align-items: center; gap: 8px; flex-grow: 1; overflow: hidden; }
+        .schedule-checkbox { width: 16px; height: 16px; accent-color: var(--accent-color); cursor: pointer; }
+        .schedule-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+        .schedule-del-btn { background: transparent; border: none; color: #ff3b30; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+        .schedule-del-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- ABA DIAS (CONTAGENS REGRESSIVAS) --- */
+        .days-tab-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
+        .sub-tab-bar { display: flex; width: 100%; background: var(--clock-bg); border: 1px solid var(--clock-border); border-radius: 12px; padding: 4px; margin-bottom: 10px; flex-shrink: 0; }
+        .sub-tab-item { flex: 1; background: transparent; border: none; color: var(--text-color); padding: 8px 0; font-size: 0.85rem; font-weight: 600; border-radius: 8px; cursor: pointer; opacity: 0.6; -webkit-tap-highlight-color: transparent; }
+        .sub-tab-item.active { background: var(--accent-color); color: white; opacity: 1; }
+        
+
+        .scrollable-list {
+            flex-grow: 1;
+            width: 100%;
+            overflow-y: auto;
+            padding-right: 2px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            touch-action: pan-y;
+        }
+        .scrollable-list.active { display: flex; }
+
+        .countdown-card {
+            background: var(--card-bg);
+            border: 1px solid var(--clock-border);
+            border-radius: 14px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .card-info { display: flex; flex-direction: column; gap: 2px; }
+        .card-title { font-size: 0.95rem; font-weight: 700; }
+        .card-subtitle { font-size: 0.75rem; opacity: 0.6; }
+        .card-counter { text-align: right; }
+        .counter-days { font-size: 1.25rem; font-weight: 800; color: var(--accent-color); }
+        .counter-label { font-size: 0.7rem; text-transform: uppercase; font-weight: 600; opacity: 0.5; }
+
+        .scrollable-list::-webkit-scrollbar, .schedule-list::-webkit-scrollbar, .dropdown-list::-webkit-scrollbar { width: 4px; }
+        .scrollable-list::-webkit-scrollbar-thumb, .schedule-list::-webkit-scrollbar-thumb, .dropdown-list::-webkit-scrollbar-thumb { background: var(--clock-border); border-radius: 10px; }
+
+        /* --- ABA CALCULADORA --- */
+        .calculator-wrapper { width: 100%; background: var(--clock-bg); border: 1px solid var(--clock-border); border-radius: 16px; padding: 16px; box-shadow: var(--clock-shadow); margin: auto 0; display: flex; flex-direction: column; gap: 12px; }
+        .calc-display { width: 100%; background: var(--calc-display-bg); border-radius: 12px; padding: 16px; text-align: right; overflow: hidden; }
+        .calc-expr { font-size: 0.85rem; min-height: 1.2rem; opacity: 0.6; letter-spacing: 0.5px; word-wrap: break-word; }
+        .calc-result { font-size: 2rem; font-weight: 700; min-height: 2.6rem; line-height: 2.6rem; word-wrap: break-word; overflow: hidden; }
+
+        .calc-buttons-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+        .calc-btn {
+            background: var(--calc-btn-bg);
+            border: 1px solid var(--clock-border);
+            color: var(--text-color);
+            font-size: 1.3rem;
+            font-weight: 600;
+            height: 52px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+            touch-action: manipulation;
+        }
+
+
+        .calc-btn:active { opacity: 0.5; }
+        .calc-btn.operator { background: var(--calc-btn-op); color: white; border-color: var(--calc-btn-op); }
+        .calc-btn.special { background: var(--calc-btn-spec); }
+
+        /* --- BARRA DE NAVEGAÇÃO DE ABAS INFERIOR --- */
+        .bottom-nav {
+            display: flex;
+            width: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 6px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03);
+            flex-shrink: 0;
+            margin-top: 10px;
+        }
+
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            opacity: 0.5;
+            cursor: pointer;
+            padding: 6px 0;
+            font-size: 0.7rem;
+            font-weight: 600;
+            transition: opacity 0.2s, color 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+
+        .nav-item.active { opacity: 1; color: var(--accent-color); }
+        .nav-item svg { width: 20px; height: 20px; fill: currentColor; }
+
+        /* RESPONSIVIDADE PARA TELAS PEQUENAS */
+        @media (max-height: 660px) {
+            .container { height: 96vh; }
+            .clock-wrapper { width: 170px; height: 170px; }
+            .marking { transform-origin: 1.75px 76px; }
+            .clock-number { font-size: 0.8rem; }
+            .num-12 { top: 6px; left: calc(50% - 15px); }
+            .num-1  { top: 14px; left: calc(50% - 15px + 28px); }
+            .num-2  { top: 36px; left: calc(50% - 15px + 50px); }
+            .num-3  { top: 70px; right: 6px; }
+            .num-4  { top: 104px; left: calc(50% - 15px + 50px); }
+            .num-5  { top: 126px; left: calc(50% - 15px + 28px); }
+            .num-6  { bottom: 6px; left: calc(50% - 15px); }
+            .num-7  { top: 126px; left: calc(50% - 15px - 28px); }
+            .num-8  { top: 104px; left: calc(50% - 15px - 50px); }
+            .num-9  { top: 70px; left: 6px; }
+
+            .num-10 { top: 36px; left: calc(50% - 15px - 50px); }
+            .num-11 { top: 14px; left: calc(50% - 15px - 28px); }
+            
+            .digital-time { font-size: 1.15rem; }
+            .cal-digital-time { font-size: 1.35rem; }
+            .calendar-wrapper { padding: 6px; }
+            .calendar-day { height: 22px; font-size: 0.75rem; }
+            .dropdown-header, .dropdown-item { padding: 6px 10px; font-size: 0.8rem; }
+            .dropdown-list { max-height: 120px; }
+            .schedule-input { padding: 5px 8px; font-size: 0.75rem; }
+            .schedule-item { padding: 5px 6px; font-size: 0.75rem; }
+            .schedule-list { max-height: 120px; }
+            .calculator-wrapper { padding: 8px; gap: 4px; }
+            .calc-btn { height: 38px; font-size: 1.05rem; border-radius: 8px; }
+            .calc-result { font-size: 1.3rem; min-height: 1.6rem; line-height: 1.6rem; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+
+    <div class="container">
+        <!-- Barra superior comum -->
+        <div class="controls-panel">
+            <span style="font-weight: 700; letter-spacing: 0.7px;" id="app-title">CHRONOS</span>
+            
+            <button class="btn" id="theme-toggle" title="Alternar Tema">
+                <svg id="theme-icon" viewBox="0 0 24 24">
+                    <path d="M12,18C11.11,18 10.26,17.8 9.5,17.45C11.56,16.5 13,14.42 13,12C13,9.58 11.56,7.5 9.5,6.55C10.26,6.2 11.11,6 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- CONTEÚDO: ABA RELÓGIO PRINCIPAL -->
+        <div id="tab-clock-content" class="tab-content active">
+            <div class="clock-wrapper">
+                <div class="clock-face" id="clock-face">
+                    <div class="clock-numbers-container">
+                        <div class="clock-number num-12">12</div>
+                        <div class="clock-number num-1">1</div>
+
+                        <div class="clock-number num-2">2</div>
+                        <div class="clock-number num-3">3</div>
+                        <div class="clock-number num-4">4</div>
+                        <div class="clock-number num-5">5</div>
+                        <div class="clock-number num-6">6</div>
+                        <div class="clock-number num-7">7</div>
+                        <div class="clock-number num-8">8</div>
+                        <div class="clock-number num-9">9</div>
+                        <div class="clock-number num-10">10</div>
+                        <div class="clock-number num-11">11</div>
+                    </div>
+
+                    <div class="hand hour-hand" id="hour-hand"></div>
+                    <div class="hand minute-hand" id="minute-hand"></div>
+                    <div class="hand second-hand" id="second-hand"></div>
+                    <div class="center-nut"></div>
+                </div>
+            </div>
+
+
+            <div class="digital-display">
+                <div class="digital-time" id="digital-time">00:00:00</div>
+                <div class="digital-date" id="digital-date">Carregando data...</div>
+            </div>
+
+            <div class="options-menu">
+                <button class="opt-btn active" id="sweep-toggle">Ponteiro Contínuo</button>
+                <button class="opt-btn" id="sound-toggle">Som (Tick)</button>
+            </div>
+        </div>
+
+        <!-- CONTEÚDO: ABA CALENDÁRIO COM CRONOGRAMA -->
+        <div id="tab-calendar-content" class="tab-content">
+            <div class="calendar-view-container">
+                <div class="calendar-wrapper">
+                    <div class="calendar-header-clock">
+                        <div class="cal-digital-time" id="cal-digital-time">00:00:00</div>
+                    </div>
+                    
+
+                    <div class="calendar-navigation">
+                        <button class="cal-nav-arrow" onclick="navigateMonth(-1)">‹</button>
+                        <div class="cal-month-title" id="cal-month-title">Novembro 2026</div>
+                        <button class="cal-nav-arrow" onclick="navigateMonth(1)">›</button>
+                    </div>
+
+                    <div class="event-selector-box">
+                        <label class="event-label">Mapear Evento ou Festa:</label>
+                        <div class="custom-dropdown" id="custom-dropdown">
+                            <div class="dropdown-header" id="dropdown-header" onclick="toggleCustomDropdown(event)">-- Escolha um Feriado ou Festa --</div>
+                            <div class="dropdown-list" id="dropdown-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="calendar-grid" id="calendar-grid">
+                        <div class="weekday-label">D</div>
+                        <div class="weekday-label">S</div>
+                        <div class="weekday-label">T</div>
+                        <div class="weekday-label">Q</div>
+
+                        <div class="weekday-label">Q</div>
+                        <div class="weekday-label">S</div>
+                        <div class="weekday-label">S</div>
+                    </div>
+                </div>
+
+                <div class="schedule-wrapper">
+                    <div class="schedule-title">
+                        <svg style="width:18px; height:18px; fill:var(--accent-color);" viewBox="0 0 24 24">
+                            <path d="M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3M14,17H7V15H14V17M17,13H7V11H17V13M17,9H7V7H17V9Z"/>
+                        </svg>
+                        <span>Cronograma do Dia</span>
+                    </div>
+                    <div class="schedule-input-row">
+                        <input type="text" class="schedule-input" id="schedule-input" placeholder="Nova tarefa ou horário..." onkeypress="handleScheduleKey(event)">
+                        <button class="schedule-add-btn" onpointerdown="addScheduleItem()">+</button>
+                    </div>
+                    <div class="schedule-list" id="schedule-list"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- CONTEÚDO: ABA DIAS -->
+        <div id="tab-days-content" class="tab-content">
+            <div class="days-tab-container">
+                <div class="sub-tab-bar">
+                    <button class="sub-tab-item active" id="sub-tab-years">Próximos Anos</button>
+                    <button class="sub-tab-item" id="sub-tab-holidays">Feriados (BR)</button>
+                </div>
+                <div class="scrollable-list active" id="list-years"></div>
+                <div class="scrollable-list" id="list-holidays"></div>
+            </div>
+        </div>
+
+        <!-- CONTEÚDO: ABA CALCULADORA -->
+        <div id="tab-calc-content" class="tab-content">
+            <div class="calculator-wrapper">
+                <div class="calc-display">
+
+                    <div class="calc-expr" id="calc-expr"></div>
+                    <div class="calc-result" id="calc-result">0</div>
+                </div>
+                <div class="calc-buttons-grid">
+                    <button class="calc-btn special" onpointerdown="calcClear()">C</button>
+                    <button class="calc-btn special" onpointerdown="calcBackspace()">⌫</button>
+                    <button class="calc-btn special" onpointerdown="calcInput('/')">÷</button>
+                    <button class="calc-btn operator" onpointerdown="calcInput('*')">×</button>
+                    
+                    <button class="calc-btn" onpointerdown="calcInput('7')">7</button>
+                    <button class="calc-btn" onpointerdown="calcInput('8')">8</button>
+                    <button class="calc-btn" onpointerdown="calcInput('9')">9</button>
+                    <button class="calc-btn operator" onpointerdown="calcInput('-')">-</button>
+                    
+                    <button class="calc-btn" onpointerdown="calcInput('4')">4</button>
+                    <button class="calc-btn" onpointerdown="calcInput('5')">5</button>
+                    <button class="calc-btn" onpointerdown="calcInput('6')">6</button>
+                    <button class="calc-btn operator" onpointerdown="calcInput('+')">+</button>
+                    
+
+                    <button class="calc-btn" onpointerdown="calcInput('1')">1</button>
+                    <button class="calc-btn" onpointerdown="calcInput('2')">2</button>
+                    <button class="calc-btn" onpointerdown="calcInput('3')">3</button>
+                    <button class="calc-btn operator" onpointerdown="calcCalculate()">=</button>
+                    
+                    <button class="calc-btn" style="grid-column: span 2;" onpointerdown="calcInput('0')">0</button>
+                    <button class="calc-btn" onpointerdown="calcInput('.')">,</button>
+                    <button class="calc-btn special" onpointerdown="calcTimeConvert()" style="font-size: 0.85rem; font-weight: bold;">H ➔ Min</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BARRA DE NAVEGAÇÃO DE ABAS INFERIOR -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" id="nav-clock">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z" />
+                </svg>
+                <span>Relógio</span>
+
+            </button>
+            <button class="nav-item" id="nav-calendar">
+                <svg viewBox="0 0 24 24">
+                    <path d="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,4V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V4C21,2.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z" />
+                </svg>
+                <span>Calendário</span>
+            </button>
+            <button class="nav-item" id="nav-days">
+                <svg viewBox="0 0 24 24">
+                    <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V9h14v10zm-7-8h5v5h-5v-5z"/>
+                </svg>
+                <span>Dias</span>
+            </button>
+            <button class="nav-item" id="nav-calc">
+                <svg viewBox="0 0 24 24">
+                    <path d="M7,2H17A2,2 0 0,1 19,4V20A2,2 0 0,1 17,22H7A2,2 0 0,1 5,20V4A2,2 0 0,1 7,2M7,4V8H17V4H7M7,10v2h2V10H7M11,10v2h2V10H11M15,10v2h2V10H15M7,14v2h2V14H7M11,14v2h2V14H11M15,14v2h2V14H15M7,18v2h2V18H7M11,18v2h2V18H11M15,18v2h2V18H15Z"/>
+                </svg>
+                <span>Calculadora</span>
+            </button>
+
+        </nav>
+    </div>
+
+    <script>
+        // --- TRAVAS NATIVAS ESTILO ANDROID APP ---
+        document.addEventListener('contextmenu', event => event.preventDefault(), false);
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (event) => {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                if (!event.target.classList.contains('calc-btn') && !event.target.closest('.custom-dropdown') && event.target.tagName !== 'INPUT') {
+                    event.preventDefault();
+                }
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        document.addEventListener('gesturestart', event => event.preventDefault(), false);
+
+
+        // --- SISTEMA DE ESCOPO GLOBAL DO CALENDÁRIO ---
+        let displayedDate = new Date(); 
+        let activeHolidayHighlight = null; 
+        
+        // Estrutura de persistência offline para monitorar a virada dos dias
+        let lastRecordedDay = new Date().getDate();
+
+        // --- NAVEGAÇÃO DE ABAS PRINCIPAIS ---
+        const navClock = document.getElementById('nav-clock');
+        const navCalendar = document.getElementById('nav-calendar');
+        const navDays = document.getElementById('nav-days');
+        const navCalc = document.getElementById('nav-calc');
+        
+        const tabClockContent = document.getElementById('tab-clock-content');
+        const tabCalendarContent = document.getElementById('tab-calendar-content');
+        const tabDaysContent = document.getElementById('tab-days-content');
+        const tabCalcContent = document.getElementById('tab-calc-content');
+
+        function clearMainTabs() {
+
+            [navClock, navCalendar, navDays, navCalc].forEach(n => n.classList.remove('active'));
+            [tabClockContent, tabCalendarContent, tabDaysContent, tabCalcContent].forEach(t => t.classList.remove('active'));
+            document.getElementById('dropdown-list').classList.remove('show');
+        }
+
+        navClock.addEventListener('click', () => {
+            clearMainTabs();
+            navClock.classList.add('active');
+            tabClockContent.classList.add('active');
+        });
+
+        navCalendar.addEventListener('click', () => {
+            clearMainTabs();
+            navCalendar.classList.add('active');
+            tabCalendarContent.classList.add('active');
+            renderCalendar();
+            renderSchedule();
+        });
+
+
+        navDays.addEventListener('click', () => {
+            clearMainTabs();
+            navDays.classList.add('active');
+            tabDaysContent.classList.add('active');
+            updateCountdowns();
+        });
+
+        navCalc.addEventListener('click', () => {
+            clearMainTabs();
+            navCalc.classList.add('active');
+            tabCalcContent.classList.add('active');
+        });
+
+        // Sub-abas de contagem
+        const subTabYears = document.getElementById('sub-tab-years');
+        const subTabHolidays = document.getElementById('sub-tab-holidays');
+        const listYears = document.getElementById('list-years');
+        const listHolidays = document.getElementById('list-holidays');
+
+
+        subTabYears.addEventListener('click', () => {
+            subTabYears.classList.add('active');
+            subTabHolidays.classList.remove('active');
+            listYears.classList.add('active');
+            listHolidays.classList.remove('active');
+        });
+
+        subTabHolidays.addEventListener('click', () => {
+            subTabHolidays.classList.add('active');
+            subTabYears.classList.remove('active');
+            listHolidays.classList.add('active');
+            listYears.classList.remove('active');
+        });
+
+        // --- LÓGICA DO RELÓGIO COLETIVO ---
+        const hourHand = document.getElementById('hour-hand');
+        const minuteHand = document.getElementById('minute-hand');
+        const secondHand = document.getElementById('second-hand');
+        const digitalTime = document.getElementById('digital-time');
+
+        const calDigitalTime = document.getElementById('cal-digital-time');
+        const digitalDate = document.getElementById('digital-date');
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const sweepToggle = document.getElementById('sweep-toggle');
+        const soundToggle = document.getElementById('sound-toggle');
+        const clockFace = document.getElementById('clock-face');
+        const calMonthTitle = document.getElementById('cal-month-title');
+        const calendarGrid = document.getElementById('calendar-grid');
+
+        let isSweepMode = true;
+        let isSoundOn = false;
+        let audioCtx = null;
+        let lastSecond = -1;
+
+        function createClockMarkings() {
+            const existingMarkings = clockFace.querySelectorAll('.marking');
+            existingMarkings.forEach(m => m.remove());
+
+
+            const isSmallScreen = window.matchMedia("(max-height: 660px)").matches;
+            const originY = isSmallScreen ? 76 : 126;
+
+            for (let i = 0; i < 60; i++) {
+                const mark = document.createElement('div');
+                mark.classList.add('marking');
+                mark.style.transformOrigin = `1.75px ${originY}px`;
+
+                if (i % 5 === 0) {
+                    if (i === 0 || i === 15 || i === 30 || i === 45) {
+                        mark.classList.add('hours-main');
+                    } else {
+                        mark.style.width = '4px';
+                        mark.style.left = 'calc(50% - 2px)';
+                        mark.style.transformOrigin = `2px ${originY}px`;
+                    }
+                    mark.style.transform = `rotate(${i * 6}deg)`;
+                    clockFace.appendChild(mark);
+                } else {
+
+                    mark.style.height = '6px';
+                    mark.style.width = '2px';
+                    mark.style.opacity = '0.4';
+                    mark.style.left = 'calc(50% - 1px)';
+                    mark.style.transformOrigin = `1px ${originY}px`;
+                    mark.style.transform = `rotate(${i * 6}deg)`;
+                    clockFace.appendChild(mark);
+                }
+            }
+        }
+
+        function playTickSound(isTack = false) {
+            if (!isSoundOn) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(isTack ? 800 : 1200, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.02);
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.02);
+            } catch (e) { console.error(e); }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const milliseconds = now.getMilliseconds();
+            const currentDay = now.getDate();
+
+
+            // CONEXÃO OFFLINE CONTÍNUA: Monitora a virada dos dias direto no celular
+            // Quando bate meia-noite no aparelho, as folhas mudam de forma 100% autônoma
+            if (currentDay !== lastRecordedDay) {
+                lastRecordedDay = currentDay;
+                displayedDate = new Date(); // Sincroniza a folha principal do calendário para o novo mês corrente
+                renderCalendar();
+                if (tabDaysContent.classList.contains('active')) {
+                    updateCountdowns();
+                }
+            }
+
+            let secondDeg = isSweepMode ? (seconds * 6) + (milliseconds * 0.006) : seconds * 6;
+            const minuteDeg = (minutes * 6) + (seconds * 0.1);
+            const hourDeg = ((hours % 12) * 30) + (minutes * 0.5);
+
+            secondHand.style.transform = `rotate(${secondDeg}deg)`;
+            minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
+            hourHand.style.transform = `rotate(${hourDeg}deg)`;
+
+
+            if (seconds !== lastSecond) {
+                playTickSound(seconds % 2 === 0);
+                lastSecond = seconds;
+                if (tabDaysContent.classList.contains('active')) {
+                    updateCountdowns();
+                }
+            }
+
+            const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            digitalTime.textContent = formattedTime;
+            calDigitalTime.textContent = formattedTime;
+
+            const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            digitalDate.textContent = now.toLocaleDateString('pt-BR', options);
+
+            requestAnimationFrame(updateClock);
+        }
+
+        function renderCalendar() {
+
+            const now = new Date();
+            const realYear = now.getFullYear();
+            const realMonth = now.getMonth();
+            const realDay = now.getDate();
+
+            const targetYear = displayedDate.getFullYear();
+            const targetMonth = displayedDate.getMonth();
+
+            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            calMonthTitle.textContent = `${monthNames[targetMonth]} ${targetYear}`;
+
+            const oldDays = calendarGrid.querySelectorAll('.calendar-day');
+            oldDays.forEach(d => d.remove());
+
+            const firstDayIndex = new Date(targetYear, targetMonth, 1).getDay();
+            const totalDays = new Date(targetYear, targetMonth + 1, 0).getDate();
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptyCell = document.createElement('div');
+
+                emptyCell.classList.add('calendar-day', 'empty');
+                calendarGrid.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.classList.add('calendar-day');
+                dayCell.textContent = day;
+
+                if (targetYear === realYear && targetMonth === realMonth && day === realDay) {
+                    dayCell.classList.add('today');
+                }
+
+                if (activeHolidayHighlight && activeHolidayHighlight.year === targetYear && activeHolidayHighlight.month === targetMonth && activeHolidayHighlight.day === day) {
+                    dayCell.classList.add('holiday-highlight');
+                }
+
+                calendarGrid.appendChild(dayCell);
+            }
+
+        }
+
+        function navigateMonth(direction) {
+            activeHolidayHighlight = null;
+            document.getElementById('dropdown-header').textContent = "-- Escolha um Feriado ou Festa --";
+
+            displayedDate.setMonth(displayedDate.getMonth() + direction);
+            renderCalendar();
+        }
+
+        // --- CATALOGO DE FERIADOS E EVENTOS BRASILEIROS ---
+        const holidayTemplate = [
+            { id: "universal", name: "Confraternização Universal", label: "01/01", day: 1, month: 0, type: "fixed" },
+            { id: "navegantes", name: "Festa de Iemanjá / Navegantes", label: "02/02", day: 2, month: 1, type: "fixed" },
+            { id: "carnaval", name: "Carnaval (Terça-feira)", label: "Móvel", type: "moveable", offset: -47 },
+            { id: "cinzas", name: "Quarta-feira de Cinzas", label: "Móvel", type: "moveable", offset: -46 },
+            { id: "ramos", name: "Domingo de Ramos (Semana Santa)", label: "Móvel", type: "moveable", offset: -7 },
+            { id: "sextasanta", name: "Sexta-feira Santa (Paixão)", label: "Móvel", type: "moveable", offset: -2 },
+            { id: "pascoa", name: "Domingo de Páscoa", label: "Móvel", type: "moveable", offset: 0 },
+
+            { id: "tiradentes", name: "Tiradentes", label: "21/04", day: 21, month: 3, type: "fixed" },
+            { id: "trabalho", name: "Dia do Trabalhador", label: "01/05", day: 1, month: 4, type: "fixed" },
+            { id: "maes", name: "Dia das Mães", label: "2º Dom de Maio", type: "nth-weekday", month: 4, weekday: 0, n: 2 },
+            { id: "namorados", name: "Dia dos Namorados", label: "12/06", day: 12, month: 5, type: "fixed" },
+            { id: "corpus", name: "Corpus Christi", label: "Móvel", type: "moveable", offset: 60 },
+            { id: "saojoao", name: "São João / Festa Junina", label: "24/06", day: 24, month: 5, type: "fixed" },
+            { id: "pais", name: "Dia dos Pais", label: "2º Dom de Agosto", type: "nth-weekday", month: 7, weekday: 0, n: 2 },
+            { id: "independencia", name: "Independência do Brasil", label: "07/09", day: 7, month: 8, type: "fixed" },
+            { id: "criancas", name: "Dia das Crianças / Aparecida", label: "12/10", day: 12, month: 9, type: "fixed" },
+            { id: "servidor", name: "Dia do Servidor Público", label: "28/10", day: 28, month: 9, type: "fixed" },
+            { id: "halloween", name: "Halloween (Dia das Bruxas)", label: "31/10", day: 31, month: 10, type: "fixed" },
+            { id: "finados", name: "Dia de Finados", label: "02/11", day: 2, month: 10, type: "fixed" },
+            { id: "republica", name: "Proclamação da República", label: "15/11", day: 15, month: 10, type: "fixed" },
+            { id: "consciencia", name: "Dia da Consciência Negra", label: "20/11", day: 20, month: 10, type: "fixed" },
+            { id: "vesperanatal", name: "Véspera de Natal", label: "24/12", day: 24, month: 11, type: "fixed" },
+            { id: "natal", name: "Natal", label: "25/12", day: 25, month: 11, type: "fixed" },
+            { id: "reveillon", name: "Véspera de Ano Novo", label: "31/12", day: 31, month: 11, type: "fixed" }
+        ];
+
+
+        function populateCustomDropdown() {
+            const listEl = document.getElementById('dropdown-list');
+            listEl.innerHTML = '';
+            
+            const clearItem = document.createElement('div');
+            clearItem.className = 'dropdown-item';
+            clearItem.style.fontStyle = 'italic';
+            clearItem.style.opacity = '0.7';
+            clearItem.textContent = 'Limpar Seleção / Mostrar Mês Atual';
+            clearItem.onclick = (e) => selectDropdownItem(e, null);
+            listEl.appendChild(clearItem);
+
+            holidayTemplate.forEach(h => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.innerHTML = `
+                    <span>${h.name}</span>
+                    <span class="dropdown-item-date">${h.label}</span>
+                `;
+
+                item.onclick = (e) => selectDropdownItem(e, h);
+                listEl.appendChild(item);
+            });
+        }
+
+        function toggleCustomDropdown(event) {
+            event.stopPropagation();
+            document.getElementById('dropdown-list').classList.toggle('show');
+        }
+
+        function selectDropdownItem(event, holiday) {
+            event.stopPropagation();
+            const listEl = document.getElementById('dropdown-list');
+            const headerEl = document.getElementById('dropdown-header');
+            
+            listEl.classList.remove('show');
+
+            if (!holiday) {
+                activeHolidayHighlight = null;
+
+                headerEl.textContent = "-- Escolha um Feriado ou Festa --";
+                displayedDate = new Date(); 
+                renderCalendar();
+                return;
+            }
+
+            headerEl.textContent = holiday.name;
+
+            const currentYear = displayedDate.getFullYear(); 
+            let holidayDate = getHolidayDate(holiday, currentYear);
+
+            activeHolidayHighlight = {
+                year: holidayDate.getFullYear(),
+                month: holidayDate.getMonth(),
+                day: holidayDate.getDate()
+            };
+
+            displayedDate = new Date(holidayDate.getFullYear(), holidayDate.getMonth(), 1);
+            renderCalendar();
+
+        }
+
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('custom-dropdown');
+            if (dropdown && !dropdown.contains(e.target)) {
+                document.getElementById('dropdown-list').classList.remove('show');
+            }
+        });
+
+        function getHolidayDate(holiday, currentYear) {
+            if (holiday.type === 'moveable') {
+                const pascoa = getPascoaDate(currentYear);
+                const targetDate = new Date(pascoa);
+                targetDate.setDate(pascoa.getDate() + holiday.offset);
+                return targetDate;
+            } else if (holiday.type === 'nth-weekday') {
+                let date = new Date(currentYear, holiday.month, 1);
+                let count = 0;
+                while (date.getMonth() === holiday.month) {
+
+                    if (date.getDay() === holiday.weekday) {
+                        count++;
+                        if (count === holiday.n) {
+                            return new Date(date);
+                        }
+                    }
+                    date.setDate(date.getDate() + 1);
+                }
+            }
+            return new Date(currentYear, holiday.month, holiday.day);
+        }
+
+        // Algoritmo matemático local de Gauss para determinação da Páscoa de forma offline
+        function getPascoaDate(year) {
+            const a = year % 19; const b = Math.floor(year / 100); const c = year % 100;
+            const d = Math.floor(b / 4); const e = b % 4; const f = Math.floor((b + 8) / 25);
+            const g = Math.floor((b - f + 1) / 3); const h = (19 * a + b - d - g + 15) % 30;
+            const i = Math.floor(c / 4); const k = c % 4; const L = (32 + 2 * e + 2 * i - h - k) % 7;
+            const m = Math.floor((a + 11 * h + 22 * L) / 451);
+
+            const month = Math.floor((h + L - 7 * m + 114) / 31); const day = ((h + L - 7 * m + 114) % 31) + 1;
+            return new Date(year, month - 1, day);
+        }
+
+        // --- CRONOGRAMA DIÁRIO ---
+        let scheduleTasks = [
+            { text: "08:00 - Café da manhã", completed: true },
+            { text: "12:00 - Intervalo de Almoço", completed: false },
+            { text: "15:30 - Conferir horas e prazos", completed: false }
+        ];
+
+        function renderSchedule() {
+            const listEl = document.getElementById('schedule-list');
+            listEl.innerHTML = '';
+            
+            scheduleTasks.forEach((task, index) => {
+                const item = document.createElement('div');
+                item.className = `schedule-item ${task.completed ? 'completed' : ''}`;
+                item.innerHTML = `
+
+                    <div class="schedule-item-left">
+                        <input type="checkbox" class="schedule-checkbox" ${task.completed ? 'checked' : ''} onchange="toggleScheduleItem(${index})">
+                        <span class="schedule-text">${task.text}</span>
+                    </div>
+                    <button class="schedule-del-btn" onpointerdown="deleteScheduleItem(${index})">
+                        <svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
+                    </button>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+
+        function addScheduleItem() {
+            const inputEl = document.getElementById('schedule-input');
+            const text = inputEl.value.trim();
+            if (text === '') return;
+            
+            scheduleTasks.push({ text: text, completed: false });
+            inputEl.value = '';
+
+            renderSchedule();
+            
+            const listEl = document.getElementById('schedule-list');
+            setTimeout(() => {
+                listEl.scrollTop = listEl.scrollHeight;
+            }, 50);
+        }
+
+        function handleScheduleKey(event) {
+            if (event.key === 'Enter') addScheduleItem();
+        }
+
+        function toggleScheduleItem(index) {
+            scheduleTasks[index].completed = !scheduleTasks[index].completed;
+            renderSchedule();
+        }
+
+        function deleteScheduleItem(index) {
+            scheduleTasks.splice(index, 1);
+
+            renderSchedule();
+        }
+
+        // --- ABA DIAS: REGRESSIVA PERPÉTUA ---
+        function updateCountdowns() {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+
+            listYears.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const targetYear = currentYear + i;
+                const targetDate = new Date(targetYear, 0, 1);
+                const diffDays = Math.ceil((targetDate - now) / (1000 * 60 * 60 * 24));
+                listYears.appendChild(createCard(`Ano Novo ${targetYear}`, `Entrada em 01/01/${targetYear}`, diffDays));
+            }
+
+            listHolidays.innerHTML = '';
+            const computedHolidays = holidayTemplate.map(h => {
+                let holidayDate = getHolidayDate(h, currentYear);
+
+                if (holidayDate < now) holidayDate = getHolidayDate(h, currentYear + 1);
+                const diffDays = Math.ceil((holidayDate - now) / (1000 * 60 * 60 * 24));
+                return { name: h.name, dateStr: holidayDate.toLocaleDateString('pt-BR'), daysLeft: diffDays };
+            });
+
+            computedHolidays.sort((a, b) => a.daysLeft - b.daysLeft);
+            computedHolidays.forEach(h => {
+                listHolidays.appendChild(createCard(h.name, h.dateStr, h.daysLeft));
+            });
+        }
+
+        function createCard(title, subtitle, days) {
+            const card = document.createElement('div');
+            card.classList.add('countdown-card');
+            card.innerHTML = `
+                <div class="card-info">
+                    <span class="card-title">${title}</span>
+                    <span class="card-subtitle">${subtitle}</span>
+                </div>
+
+                <div class="card-counter">
+                    <span class="counter-days">${days}</span>
+                    <div class="counter-label">${days === 1 ? 'Dia' : 'Dias'}</div>
+                </div>
+            `;
+            return card;
+        }
+
+        // --- OPERAÇÕES DA CALCULADORA ---
+        const calcExprEl = document.getElementById('calc-expr');
+        const calcResultEl = document.getElementById('calc-result');
+        let calcExpression = '';
+        let calcIsEvaluated = false;
+
+        function calcInput(value) {
+            if (calcIsEvaluated) {
+                if (!isNaN(value) || value === '.') calcExpression = '';
+                calcIsEvaluated = false;
+            }
+
+            if (value === '.' && calcExpression.slice(-1) === '.') return;
+            calcExpression += value;
+            calcUpdateDisplay();
+        }
+
+        function calcClear() { calcExpression = ''; calcIsEvaluated = false; calcUpdateDisplay(); }
+        
+        function calcBackspace() {
+            if (calcIsEvaluated) return;
+            calcExpression = calcExpression.slice(0, -1);
+            calcUpdateDisplay();
+        }
+
+        function calcUpdateDisplay() {
+            let formattedExpr = calcExpression.replace(/\*/g, ' × ').replace(/\//g, ' ÷ ').replace(/\./g, ',');
+            calcExprEl.textContent = formattedExpr;
+            if (calcExpression === '') calcResultEl.textContent = '0';
+        }
+
+
+        function calcCalculate() {
+            if (!calcExpression) return;
+            try {
+                let result = Function(`"use strict"; return (${calcExpression})`)();
+                if (result === Infinity || isNaN(result)) {
+                    calcResultEl.textContent = 'Erro';
+                    calcExpression = '';
+                    return;
+                }
+                if (result % 1 !== 0) result = parseFloat(result.toFixed(6));
+                calcResultEl.textContent = String(result).replace(/\./g, ',');
+                calcIsEvaluated = true;
+            } catch (e) { calcResultEl.textContent = 'Erro'; }
+        }
+
+        function calcTimeConvert() {
+            if (!calcExpression) return;
+            try {
+                calcCalculate();
+
+                let currentValue = parseFloat(calcResultEl.textContent.replace(/,/g, '.'));
+                if (!isNaN(currentValue)) {
+                    let minutes = currentValue * 60;
+                    calcExprEl.textContent = `${currentValue} h =`;
+                    calcResultEl.textContent = `${minutes} min`;
+                    calcExpression = String(minutes);
+                    calcIsEvaluated = true;
+                }
+            } catch(e) { calcResultEl.textContent = 'Erro'; }
+        }
+
+        // --- ALTERNADOR DE TEMAS (MANUAL) ---
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.body.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                document.body.setAttribute('data-theme', 'light');
+                themeIcon.innerHTML = '<path d="M12,18C11.11,18 10.26,17.8 9.5,17.45C11.56,16.5 13,14.42 13,12C13,9.58 11.56,7.5 9.5,6.55C10.26,6.2 11.11,6 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z" />';
+            } else {
+                document.body.setAttribute('data-theme', 'dark');
+
+                themeIcon.innerHTML = '<path d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,3.5A8.5,8.5 0 1,0 20.5,12A8.5,8.5 0 0,0 12,3.5Z" />';
+            }
+        });
+
+        sweepToggle.addEventListener('click', () => {
+            isSweepMode = !isSweepMode;
+            sweepToggle.classList.toggle('active', isSweepMode);
+        });
+
+        soundToggle.addEventListener('click', () => {
+            isSoundOn = !isSoundOn;
+            soundToggle.classList.toggle('active', isSoundOn);
+            if (isSoundOn && audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            createClockMarkings();
+
+            renderCalendar();
+            renderSchedule();
+            if (tabDaysContent.classList.contains('active')) updateCountdowns();
+        });
+
+        // Inicialização automática sincronizada com as preferências do Android
+        const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (systemPrefersDark) {
+            document.body.setAttribute('data-theme', 'dark');
+            themeIcon.innerHTML = '<path d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,3.5A8.5,8.5 0 1,0 20.5,12A8.5,8.5 0 0,0 12,3.5Z" />';
+        } else {
+            document.body.setAttribute('data-theme', 'light');
+            themeIcon.innerHTML = '<path d="M12,18C11.11,18 10.26,17.8 9.5,17.45C11.56,16.5 13,14.42 13,12C13,9.58 11.56,7.5 9.5,6.55C10.26,6.2 11.11,6 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z" />';
+        }
+
+        createClockMarkings();
+        populateCustomDropdown();
+        renderCalendar();
+        renderSchedule();
+
+        requestAnimationFrame(updateClock);
+    </script>
+</body>
+</html>
