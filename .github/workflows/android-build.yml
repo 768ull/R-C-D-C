@@ -77,7 +77,7 @@ jobs:
           fi
 
       - name: Compilar APK completo sem redução de recursos
-        run: gradle assembleDebug --no-daemon -PAPP_VERSION_CODE="$APP_VERSION_CODE" -PAPP_VERSION_NAME="$APP_VERSION_NAME"
+        run: gradle assembleDebug bundleRelease --no-daemon -PAPP_VERSION_CODE="$APP_VERSION_CODE" -PAPP_VERSION_NAME="$APP_VERSION_NAME"
 
       - name: Preparar APK com nome versionado
         run: |
