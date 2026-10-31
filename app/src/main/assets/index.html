@@ -1180,6 +1180,30 @@
             .compass-degree { font-size: 1.7rem; }
         }
 
+
+        /* DESPERTADOR CHRONOS */
+        .alarm-view{width:100%;height:100%;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:10px 2px 18px;touch-action:pan-y}
+        .alarm-heading{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px}
+        .alarm-heading h2{font-size:1.25rem}.alarm-subtitle{font-size:.78rem;opacity:.65;margin-top:3px}
+        .alarm-primary-btn{border:0;border-radius:13px;padding:12px 16px;background:var(--accent-color);color:#fff;font-weight:700;font-size:.9rem}
+        .alarm-panel{width:100%;background:var(--clock-bg);border:1px solid var(--clock-border);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:11px;box-shadow:0 4px 15px rgba(0,0,0,.04)}
+        .alarm-editor-title{font-size:.95rem;font-weight:750}.alarm-field{display:flex;flex-direction:column;gap:6px;width:100%}
+        .alarm-field label{font-size:.72rem;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:.4px}
+        .alarm-input{width:100%;border:1px solid var(--clock-border);border-radius:10px;background:var(--input-bg);color:var(--text-color);padding:11px 12px;font-size:1rem;outline:none}
+        .alarm-time-input{font-size:2rem;font-weight:750;text-align:center;padding:8px}
+        .alarm-days{display:flex;flex-wrap:wrap;gap:6px}.alarm-day{border:1px solid var(--clock-border);border-radius:20px;padding:7px 9px;font-size:.72rem;color:var(--text-color);background:var(--input-bg)}
+        .alarm-day.selected{color:#fff;background:var(--accent-color);border-color:var(--accent-color)}
+        .alarm-option-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.86rem}
+        .alarm-tone-btn{border:1px solid var(--clock-border);border-radius:10px;padding:10px 12px;background:var(--input-bg);color:var(--text-color);font-size:.82rem;text-align:left}
+        .alarm-actions{display:flex;gap:8px}.alarm-secondary-btn{flex:1;border:1px solid var(--clock-border);background:var(--input-bg);color:var(--text-color);border-radius:10px;padding:11px;font-weight:650}
+        .alarm-list{display:flex;flex-direction:column;gap:8px;width:100%}.alarm-card{background:var(--clock-bg);border:1px solid var(--clock-border);border-radius:14px;padding:13px;display:flex;align-items:center;gap:10px}
+        .alarm-card-main{min-width:0;flex:1}.alarm-card-time{font-size:1.8rem;font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:.5px}
+        .alarm-card-label{font-size:.82rem;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .alarm-card-days{font-size:.68rem;opacity:.65;margin-top:4px}.alarm-card-actions{display:flex;flex-direction:column;gap:5px}
+        .alarm-small-btn{border:0;border-radius:8px;padding:6px 8px;background:var(--input-bg);color:var(--text-color);font-size:.7rem}
+        .alarm-empty{text-align:center;padding:24px 12px;font-size:.84rem;opacity:.6;background:var(--clock-bg);border:1px dashed var(--clock-border);border-radius:14px}
+        .alarm-switch{width:42px;height:24px;accent-color:var(--accent-color)}.alarm-note{font-size:.7rem;line-height:1.45;opacity:.62}
+
         /* RESPONSIVIDADE PARA TELAS PEQUENAS */
         @media (max-height: 660px) {
             .container { height: 96vh; }
@@ -1268,6 +1292,25 @@
                 <button class="opt-btn" id="sound-toggle">Som (Tick)</button>
             </div>
         </div>
+
+
+        <!-- ABA DESPERTADOR -->
+        <div id="tab-alarm-content" class="tab-content"><div class="alarm-view">
+            <div class="alarm-heading"><div><h2>Despertador</h2><div class="alarm-subtitle">Alarmes do sistema · funciona offline</div></div><button class="alarm-primary-btn" id="alarm-new-button">＋ Novo</button></div>
+            <div class="alarm-panel" id="alarm-editor"><div class="alarm-editor-title" id="alarm-editor-title">Novo alarme</div>
+                <div class="alarm-field"><label for="alarm-time">Horário</label><input class="alarm-input alarm-time-input" id="alarm-time" type="time" value="07:00"></div>
+                <div class="alarm-field"><label for="alarm-label">Nome (opcional)</label><input class="alarm-input" id="alarm-label" type="text" maxlength="48" placeholder="Ex.: Acordar"></div>
+                <div class="alarm-field"><label>Repetir</label><div class="alarm-days" id="alarm-days">
+                    <button type="button" class="alarm-day" data-day="0">Seg</button><button type="button" class="alarm-day" data-day="1">Ter</button><button type="button" class="alarm-day" data-day="2">Qua</button><button type="button" class="alarm-day" data-day="3">Qui</button><button type="button" class="alarm-day" data-day="4">Sex</button><button type="button" class="alarm-day" data-day="5">Sáb</button><button type="button" class="alarm-day" data-day="6">Dom</button>
+                </div></div>
+                <div class="alarm-option-row"><span>Vibrar</span><input class="alarm-switch" type="checkbox" id="alarm-vibrate" checked></div>
+                <button class="alarm-tone-btn" id="alarm-tone-button">♫ Escolher toque do telefone</button>
+                <div class="alarm-actions"><button class="alarm-primary-btn" id="alarm-save-button" style="flex:1">Salvar alarme</button><button class="alarm-secondary-btn" id="alarm-cancel-button">Cancelar</button></div>
+                <div class="alarm-note">Escolha os sons originais na biblioteca de alarmes do Android/fabricante. Para maior pontualidade, habilite “Alarmes e lembretes” nas configurações do Android.</div>
+                <button class="alarm-secondary-btn" id="alarm-exact-button">Permitir alarmes exatos</button><button class="alarm-secondary-btn" id="alarm-system-clock-button">Abrir relógio do telefone</button>
+            </div><div class="alarm-list" id="alarm-list"></div>
+            <div class="alarm-note">O Android agenda o alarme mesmo com o Chronos fechado. O telefone precisa estar ligado; a economia de bateria do fabricante pode afetar a entrega.</div>
+        </div></div>
 
         <!-- CONTEÚDO: ABA CALENDÁRIO COM CRONOGRAMA -->
         <div id="tab-calendar-content" class="tab-content">
@@ -1481,6 +1524,7 @@
                 <span>Relógio</span>
 
             </button>
+            <button class="nav-item" id="nav-alarm"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 5v5.4l3.2 1.9-.9 1.5-4.3-2.6V7zM4.2 3 5.6 4.4 2.8 7.2 1.4 5.8zM19.8 3l2.8 2.8-1.4 1.4-2.8-2.8z"/></svg><span>Alarme</span></button>
             <button class="nav-item" id="nav-calendar">
                 <svg viewBox="0 0 24 24">
                     <path d="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,4V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V4C21,2.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z" />
@@ -1571,6 +1615,7 @@
 
         // --- NAVEGAÇÃO DE ABAS PRINCIPAIS ---
         const navClock = document.getElementById('nav-clock');
+        const navAlarm = document.getElementById('nav-alarm');
         const navCalendar = document.getElementById('nav-calendar');
         const navDays = document.getElementById('nav-days');
         const navTimer = document.getElementById('nav-timer');
@@ -1580,6 +1625,7 @@
         const navMap = document.getElementById('nav-map');
 
         const tabClockContent = document.getElementById('tab-clock-content');
+        const tabAlarmContent = document.getElementById('tab-alarm-content');
         const tabCalendarContent = document.getElementById('tab-calendar-content');
         const tabDaysContent = document.getElementById('tab-days-content');
         const tabTimerContent = document.getElementById('tab-timer-content');
@@ -1590,8 +1636,8 @@
 
         function clearMainTabs() {
             stopCompassSensor();
-            [navClock, navCalendar, navDays, navTimer, navCalc, navCompass, navWeather, navMap].forEach(n => n.classList.remove('active'));
-            [tabClockContent, tabCalendarContent, tabDaysContent, tabTimerContent, tabCalcContent, tabCompassContent, tabWeatherContent, tabMapContent].forEach(t => t.classList.remove('active'));
+            [navClock, navAlarm, navCalendar, navDays, navTimer, navCalc, navCompass, navWeather, navMap].forEach(n => n.classList.remove('active'));
+            [tabClockContent, tabAlarmContent, tabCalendarContent, tabDaysContent, tabTimerContent, tabCalcContent, tabCompassContent, tabWeatherContent, tabMapContent].forEach(t => t.classList.remove('active'));
             document.getElementById('dropdown-list').classList.remove('show');
         }
 
@@ -1600,6 +1646,8 @@
             navClock.classList.add('active');
             tabClockContent.classList.add('active');
         });
+
+        navAlarm.addEventListener('click', () => { clearMainTabs(); navAlarm.classList.add('active'); tabAlarmContent.classList.add('active'); loadChronosAlarms(); });
 
         navCalendar.addEventListener('click', () => {
             clearMainTabs();
@@ -2054,7 +2102,7 @@
         // O conteúdo das telas (especialmente o mapa Leaflet) mantém seus próprios gestos.
         const navStrip = document.querySelector('.bottom-nav');
         const chronosTabs = [
-            navClock, navCalendar, navDays, navTimer, navCalc, navCompass, navWeather, navMap
+            navClock, navAlarm, navCalendar, navDays, navTimer, navCalc, navCompass, navWeather, navMap
         ];
 
         function ensureActiveTabIsVisible(button) {
@@ -2075,6 +2123,31 @@
                 event.preventDefault();
             }
         }, { passive: false });
+
+
+        // DESPERTADOR: o disparo fica no AlarmManager nativo do Android.
+        const alarmListElement=document.getElementById('alarm-list'),alarmTimeInput=document.getElementById('alarm-time'),alarmLabelInput=document.getElementById('alarm-label'),alarmVibrateInput=document.getElementById('alarm-vibrate'),alarmToneButton=document.getElementById('alarm-tone-button');
+        let chronosAlarms=[],editingAlarmId=null,selectedAlarmTone='',alarmToneLabel='♫ Escolher toque do telefone';
+        const alarmBridge=()=>window.ChronosAlarm||null,alarmDayNames=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+        function selectedAlarmDays(){return Array.from(document.querySelectorAll('#alarm-days .alarm-day')).map(b=>b.classList.contains('selected'));}
+        function setAlarmDaySelection(days){document.querySelectorAll('#alarm-days .alarm-day').forEach((b,i)=>b.classList.toggle('selected',!!(days&&days[i])));}
+        document.querySelectorAll('#alarm-days .alarm-day').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('selected')));
+        function resetAlarmEditor(){editingAlarmId=null;selectedAlarmTone='';alarmToneLabel='♫ Escolher toque do telefone';document.getElementById('alarm-editor-title').textContent='Novo alarme';document.getElementById('alarm-save-button').textContent='Salvar alarme';alarmTimeInput.value='07:00';alarmLabelInput.value='';alarmVibrateInput.checked=true;setAlarmDaySelection([]);alarmToneButton.textContent=alarmToneLabel;}
+        function loadChronosAlarms(){const b=alarmBridge();if(b&&b.getAlarms){try{chronosAlarms=JSON.parse(b.getAlarms()||'[]');}catch(e){chronosAlarms=[];}}renderChronosAlarms();}
+        function describeAlarmDays(days){if(!days||!days.some(Boolean))return 'Uma vez';if(days.every(Boolean))return 'Todos os dias';return days.map((v,i)=>v?alarmDayNames[i]:null).filter(Boolean).join(' · ');}
+        function renderChronosAlarms(){alarmListElement.innerHTML='';chronosAlarms.sort((a,b)=>String(a.time).localeCompare(String(b.time)));if(!chronosAlarms.length){alarmListElement.innerHTML='<div class="alarm-empty">Nenhum alarme configurado.<br>Toque em “Novo” para criar o primeiro.</div>';return;}
+         chronosAlarms.forEach(a=>{const card=document.createElement('div');card.className='alarm-card';const main=document.createElement('div');main.className='alarm-card-main';const time=document.createElement('div');time.className='alarm-card-time';time.textContent=a.time||'--:--';const label=document.createElement('div');label.className='alarm-card-label';label.textContent=a.label||'Alarme';const days=document.createElement('div');days.className='alarm-card-days';days.textContent=describeAlarmDays(a.days);main.append(time,label,days);
+          const actions=document.createElement('div');actions.className='alarm-card-actions';const active=document.createElement('input');active.type='checkbox';active.className='alarm-switch';active.checked=a.enabled!==false;active.setAttribute('aria-label','Ativar alarme');active.addEventListener('change',()=>{const b=alarmBridge();if(b)b.setAlarmEnabled(String(a.id),active.checked);a.enabled=active.checked;});
+          const edit=document.createElement('button');edit.className='alarm-small-btn';edit.textContent='Editar';edit.addEventListener('click',()=>editChronosAlarm(a));
+          const del=document.createElement('button');del.className='alarm-small-btn';del.textContent='Excluir';del.addEventListener('click',()=>{const b=alarmBridge();if(b)b.deleteAlarm(String(a.id));chronosAlarms=chronosAlarms.filter(x=>String(x.id)!==String(a.id));renderChronosAlarms();});actions.append(active,edit,del);card.append(main,actions);alarmListElement.appendChild(card);});}
+        function editChronosAlarm(a){editingAlarmId=a.id;document.getElementById('alarm-editor-title').textContent='Editar alarme';document.getElementById('alarm-save-button').textContent='Salvar alterações';alarmTimeInput.value=a.time||'07:00';alarmLabelInput.value=a.label||'';alarmVibrateInput.checked=a.vibrate!==false;setAlarmDaySelection(a.days||[]);selectedAlarmTone=a.tone||'';alarmToneLabel=a.toneName||'♫ Toque do telefone selecionado';alarmToneButton.textContent=alarmToneLabel;document.getElementById('alarm-editor').scrollIntoView({behavior:'smooth',block:'start'});}
+        document.getElementById('alarm-new-button').addEventListener('click',()=>{resetAlarmEditor();document.getElementById('alarm-editor').scrollIntoView({behavior:'smooth',block:'start'});});
+        document.getElementById('alarm-cancel-button').addEventListener('click',resetAlarmEditor);
+        document.getElementById('alarm-save-button').addEventListener('click',()=>{const b=alarmBridge();if(!b||!b.saveAlarm){alert('O serviço nativo de alarmes não está disponível.');return;}if(!alarmTimeInput.value){alert('Escolha o horário do alarme.');return;}const a={id:editingAlarmId||Date.now(),time:alarmTimeInput.value,label:alarmLabelInput.value.trim(),days:selectedAlarmDays(),enabled:true,vibrate:alarmVibrateInput.checked,tone:selectedAlarmTone,toneName:alarmToneLabel};b.saveAlarm(JSON.stringify(a));resetAlarmEditor();setTimeout(loadChronosAlarms,180);});
+        alarmToneButton.addEventListener('click',()=>{const b=alarmBridge();if(b)b.pickAlarmTone(selectedAlarmTone);else alert('Seletor de toques indisponível.');});
+        window.onChronosAlarmTonePicked=(uri,title)=>{if(uri){selectedAlarmTone=uri;alarmToneLabel=title||'♫ Toque selecionado';alarmToneButton.textContent=alarmToneLabel;}};
+        document.getElementById('alarm-exact-button').addEventListener('click',()=>{const b=alarmBridge();if(b)b.requestExactAlarmPermission();});
+        document.getElementById('alarm-system-clock-button').addEventListener('click',()=>{const b=alarmBridge();if(b)b.openSystemClock();});
 
         // Ponte entre o sensor nativo Android e a interface da bússola.
         const compassDial = document.getElementById('compass-dial');
@@ -2250,7 +2323,8 @@
             const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
             digitalDate.textContent = now.toLocaleDateString('pt-BR', options);
 
-            requestAnimationFrame(updateClock);
+            loadChronosAlarms();
+        requestAnimationFrame(updateClock);
         }
 
         function renderCalendar() {
