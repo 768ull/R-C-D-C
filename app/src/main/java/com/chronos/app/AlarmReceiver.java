@@ -22,14 +22,14 @@ public final class AlarmReceiver extends BroadcastReceiver {
    JSONObject a=find(c,id); if(a==null||!a.optBoolean("enabled",true))return;
    label=a.optString("label","Alarme"); tone=a.optString("tone",""); vibrate=a.optBoolean("vibrate",true);
    if(hasDays(a.optJSONArray("days"))) schedule(c,a);
-   else { a.put("enabled",false); upsert(c,a,false); }
+   else { try { a.put("enabled",false); upsert(c,a,false); } catch (org.json.JSONException ignored) {} }
   }
   notifyAlarm(c,id,label,tone,vibrate,snooze);
  }
  static JSONArray alarms(Context c){try{return new JSONArray(c.getSharedPreferences(PREFS,0).getString(KEY,"[]"));}catch(Exception e){return new JSONArray();}}
  static String alarmsJson(Context c){return alarms(c).toString();}
- static void save(Context c,JSONObject a){if(a==null||a.optLong("id",-1)<0)return;a.put("enabled",a.optBoolean("enabled",true));upsert(c,a,true);}
- static void enable(Context c,long id,boolean value){JSONObject a=find(c,id);if(a!=null){a.put("enabled",value);upsert(c,a,true);}}
+ static void save(Context c,JSONObject a){if(a==null||a.optLong("id",-1)<0)return;try{a.put("enabled",a.optBoolean("enabled",true));upsert(c,a,true);}catch(org.json.JSONException ignored){}}
+ static void enable(Context c,long id,boolean value){JSONObject a=find(c,id);if(a!=null){try{a.put("enabled",value);upsert(c,a,true);}catch(org.json.JSONException ignored){}}}
  static void delete(Context c,long id){cancel(c,id);JSONArray old=alarms(c),next=new JSONArray();for(int i=0;i<old.length();i++){JSONObject a=old.optJSONObject(i);if(a!=null&&a.optLong("id")!=id)next.put(a);}store(c,next);}
  static void restore(Context c){JSONArray all=alarms(c);for(int i=0;i<all.length();i++){JSONObject a=all.optJSONObject(i);if(a!=null&&a.optBoolean("enabled",true))schedule(c,a);}}
  private static void store(Context c,JSONArray a){c.getSharedPreferences(PREFS,0).edit().putString(KEY,a.toString()).apply();}
