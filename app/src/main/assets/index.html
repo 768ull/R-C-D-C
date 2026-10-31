@@ -1713,6 +1713,10 @@
                 return;
             }
             if (!chronosMap) initializeOpenMap();
+            if (!chronosMap || !window.L) {
+                mapStatus.textContent = 'O mapa ainda não está pronto. Aguarde o carregamento e tente novamente.';
+                return;
+            }
             const first = results[0];
             const lat = Number(first.lat);
             const lon = Number(first.lon);
