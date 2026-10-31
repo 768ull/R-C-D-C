@@ -29,4 +29,12 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
+
+    // Alinha os módulos legados do Kotlin (jdk7/jdk8) com a versão do
+    // kotlin-stdlib trazida pelo AndroidX, evitando o erro de classes
+    // duplicadas na tarefa checkDebugDuplicateClasses.
+    constraints {
+        implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+        implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+    }
 }
