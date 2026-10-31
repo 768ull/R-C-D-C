@@ -290,7 +290,7 @@ final class ChronosBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDe
         }
         alarms = all
 
-        requestAlarmPermission { [weak self] granted in
+        requestNotificationAuthorization { [weak self] granted in
             guard let self else { return }
             if granted, (updated["enabled"] as? Bool ?? true) {
                 self.scheduleAlarm(updated)
@@ -306,7 +306,7 @@ final class ChronosBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDe
         alarms = all
         removeAlarmNotifications(identifier)
         if enabled {
-            requestAlarmPermission { [weak self] granted in
+            requestNotificationAuthorization { [weak self] granted in
                 guard granted, let self else { return }
                 if let alarm = self.alarms.first(where: { self.alarmID($0["id"]) == identifier }) {
                     self.scheduleAlarm(alarm)
@@ -321,14 +321,14 @@ final class ChronosBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDe
         removeAlarmNotifications(identifier)
     }
 
-    private func requestAlarmPermission(completion: ((Bool) -> Void)? = nil) {
+    private func requestNotificationAuthorization(completion: ((Bool) -> Void)? = nil) {
         notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
             DispatchQueue.main.async { completion?(granted) }
         }
     }
 
     private func requestAlarmPermission() {
-        requestAlarmPermission { [weak self] granted in
+        requestNotificationAuthorization { [weak self] granted in
             self?.callJS("onChronosWeatherStatus", [
                 granted
                     ? "Permissão de notificações concedida. O iOS poderá entregar os alarmes como notificações."
