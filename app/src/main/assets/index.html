@@ -4,6 +4,32 @@
     <meta charset="UTF-8">
     <!-- Bloqueia o zoom nativo do navegador tanto no carregamento quanto por gestos de pinça -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Aplica o tema salvo antes do primeiro paint para evitar um flash do tema claro. -->
+    <script>
+        (function () {
+            var theme = null;
+            try {
+                var raw = window.localStorage.getItem('chronos-app-preferences');
+                if (raw) {
+                    var preferences = JSON.parse(raw);
+                    if (preferences && (preferences.theme === 'dark' || preferences.theme === 'light')) {
+                        theme = preferences.theme;
+                    }
+                }
+            } catch (error) {
+                // O tema do sistema continua sendo um fallback seguro.
+            }
+            if (!theme && window.matchMedia) {
+                theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            if (theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                document.documentElement.style.backgroundColor =
+                    theme === 'dark' ? '#0f172a' : '#eef2f3';
+                document.documentElement.style.colorScheme = theme;
+            }
+        })();
+    </script>
     <title>Chronos App</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
     <style>
