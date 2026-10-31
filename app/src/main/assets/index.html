@@ -1749,13 +1749,12 @@
             mapStatus.textContent = 'Visualização do Brasil.';
         });
 
-        // Navegação por gesto: deslize o conteúdo para a esquerda/direita para trocar de aba.
+        // A barra inferior é a única área com rolagem horizontal.
+        // O conteúdo das telas (especialmente o mapa Leaflet) mantém seus próprios gestos.
+        const navStrip = document.querySelector('.bottom-nav');
         const chronosTabs = [
             navClock, navCalendar, navDays, navTimer, navCalc, navCompass, navWeather, navMap
         ];
-        const navStrip = document.querySelector('.bottom-nav');
-        const swipeArea = document.querySelector('.container');
-        let swipeStart = null;
 
         function ensureActiveTabIsVisible(button) {
             button.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -1767,35 +1766,14 @@
             });
         });
 
-        swipeArea.addEventListener('touchstart', event => {
-            if (event.touches.length !== 1) { swipeStart = null; return; }
-            const target = event.target;
-            if (target.closest('.bottom-nav, button, input, textarea, select, .scrollable-list, .calendar-view-container, .dropdown-list')) {
-                swipeStart = null;
-                return;
+        // Não há mais ouvintes touch no container geral:
+        // arrastar o mapa, calendário ou qualquer tela não pode trocar de aba.
+        navStrip.addEventListener('wheel', event => {
+            if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+                navStrip.scrollLeft += event.deltaY;
+                event.preventDefault();
             }
-            swipeStart = {
-                x: event.touches[0].clientX,
-                y: event.touches[0].clientY,
-                time: Date.now()
-            };
-        }, { passive: true });
-
-        swipeArea.addEventListener('touchend', event => {
-            if (!swipeStart || !event.changedTouches.length) return;
-            const dx = event.changedTouches[0].clientX - swipeStart.x;
-            const dy = event.changedTouches[0].clientY - swipeStart.y;
-            const elapsed = Date.now() - swipeStart.time;
-            swipeStart = null;
-
-            if (Math.abs(dx) < 65 || Math.abs(dx) < Math.abs(dy) * 1.25 || elapsed > 900) return;
-            const activeIndex = chronosTabs.findIndex(button => button.classList.contains('active'));
-            if (activeIndex < 0) return;
-            const nextIndex = dx < 0
-                ? Math.min(chronosTabs.length - 1, activeIndex + 1)
-                : Math.max(0, activeIndex - 1);
-            if (nextIndex !== activeIndex) chronosTabs[nextIndex].click();
-        }, { passive: true });
+        }, { passive: false });
 
         // Ponte entre o sensor nativo Android e a interface da bússola.
         const compassDial = document.getElementById('compass-dial');
