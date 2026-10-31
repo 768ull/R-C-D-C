@@ -207,6 +207,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private final class CompassBridge {
         @JavascriptInterface
+        public String getGoogleMapsEmbedApiKey() {
+            return getString(R.string.google_maps_embed_api_key);
+        }
+
+        @JavascriptInterface
         public boolean startCompass() {
             if (!hasCompassSensor()) return false;
 

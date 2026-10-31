@@ -922,6 +922,26 @@
             .nav-item svg { width: 20px; height: 20px; }
         }
 
+        /* --- MAPA GOOGLE MAPS --- */
+        .map-view { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; gap:12px; padding:6px 0 10px; }
+        .map-heading { display:flex; flex-direction:column; gap:4px; padding:2px 4px; }
+        .map-heading strong { font-size:1.12rem; font-weight:800; }
+        .map-heading span { font-size:0.76rem; opacity:0.66; line-height:1.4; }
+        .map-search-row { display:flex; gap:8px; align-items:center; }
+        .map-search-input { flex:1 1 auto; min-width:0; padding:12px 14px; border-radius:13px; border:1px solid var(--glass-border); outline:none; background:var(--glass-bg); color:var(--text-color); font:inherit; font-size:0.86rem; }
+        .map-search-button, .map-reset-button { flex:0 0 auto; border:0; border-radius:13px; padding:12px 14px; background:var(--accent-color); color:#fff; font-size:0.82rem; font-weight:750; cursor:pointer; }
+        .map-reset-button { background:var(--glass-bg); border:1px solid var(--glass-border); color:var(--text-color); }
+        .map-frame-wrap { position:relative; flex:1 1 auto; min-height:240px; width:100%; overflow:hidden; border-radius:18px; border:1px solid var(--glass-border); background:var(--glass-bg); }
+        .map-frame-wrap iframe { display:none; width:100%; height:100%; min-height:240px; border:0; background:#e8edf2; }
+        .map-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; height:100%; min-height:240px; padding:24px; text-align:center; color:var(--text-color); }
+        .map-placeholder svg { width:50px; height:50px; fill:var(--accent-color); }
+        .map-placeholder strong { font-size:0.94rem; }
+        .map-placeholder span { max-width:290px; font-size:0.76rem; line-height:1.5; opacity:0.7; }
+        .map-status { min-height:2.5em; font-size:0.74rem; line-height:1.4; opacity:0.7; padding:0 3px; }
+        .map-footer { display:flex; gap:8px; align-items:center; justify-content:space-between; }
+        .map-footer small { font-size:0.68rem; opacity:0.58; }
+        @media (max-width:370px) { .map-search-button, .map-reset-button { padding:11px 10px; font-size:0.76rem; } .map-search-input { padding:11px 10px; } }
+
         /* --- ABA CLIMA: ACESSO AO APLICATIVO NATIVO DO FABRICANTE --- */
         .weather-view {
             display: flex;
@@ -1393,6 +1413,38 @@
             </div>
         </div>
 
+        <!-- CONTEÚDO: ABA MAPA -->
+        <div id="tab-map-content" class="tab-content">
+            <div class="map-view">
+                <div class="map-heading">
+                    <strong>Google Maps</strong>
+                    <span>Pesquise endereços e lugares e explore o mapa sem sair do Chronos.</span>
+                </div>
+                <div class="map-search-row">
+                    <input id="map-search-input" class="map-search-input" type="search"
+                        placeholder="Pesquisar endereço ou lugar" autocomplete="off" />
+                    <button id="map-search-button" class="map-search-button">Buscar</button>
+                </div>
+                <div class="map-frame-wrap">
+                    <iframe id="google-map-frame" title="Mapa do Google Maps"
+                        loading="lazy" allowfullscreen
+                        referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                    <div id="map-placeholder" class="map-placeholder">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.26-.36.49V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.26.36-.49V3.5c0-.28-.22-.5-.5-.5zM10 5.47l4 1.4v11.66l-4-1.4V5.47zM5 6.1l3-.99v12.02l-3 1V6.1zm14 12.8-3 1V7.9l3-1v12z"/>
+                        </svg>
+                        <strong>Mapa pronto para configurar</strong>
+                        <span>O Google Maps será exibido aqui depois que a chave restrita da Maps Embed API for adicionada às configurações do repositório.</span>
+                    </div>
+                </div>
+                <div class="map-footer">
+                    <button id="map-reset-button" class="map-reset-button">Ver Brasil</button>
+                    <small>Google Maps · Conteúdo interativo</small>
+                </div>
+                <div id="map-status" class="map-status">A integração está preparada; falta configurar a chave da API.</div>
+            </div>
+        </div>
+
         <!-- BARRA DE NAVEGAÇÃO DE ABAS INFERIOR -->
         <nav class="bottom-nav">
             <button class="nav-item active" id="nav-clock">
@@ -1437,6 +1489,12 @@
                     <path d="M6.5 20A4.5 4.5 0 0 1 6 11a6.5 6.5 0 0 1 12.7 1.7A3.7 3.7 0 0 1 18 20H6.5zm0-2H18a1.7 1.7 0 0 0 .2-3.4l-1.2-.1.1-1.2A4.5 4.5 0 0 0 8 12l-.2 1-1-.1A2.5 2.5 0 0 0 6.5 18zM7 3h2v3H7V3zm9.3 1.1 1.4 1.4-2.1 2.1-1.4-1.4 2.1-2.1z"/>
                 </svg>
                 <span>Clima</span>
+            </button>
+            <button class="nav-item" id="nav-map">
+                <svg viewBox="0 0 24 24">
+                    <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.26-.36.49V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.26.36-.49V3.5c0-.28-.22-.5-.5-.5zM10 5.47l4 1.4v11.66l-4-1.4V5.47zM5 6.1l3-.99v12.02l-3 1V6.1zm14 12.8-3 1V7.9l3-1v12z"/>
+                </svg>
+                <span>Mapa</span>
             </button>
 
         </nav>
@@ -1491,6 +1549,7 @@
         const navCalc = document.getElementById('nav-calc');
         const navCompass = document.getElementById('nav-compass');
         const navWeather = document.getElementById('nav-weather');
+        const navMap = document.getElementById('nav-map');
 
         const tabClockContent = document.getElementById('tab-clock-content');
         const tabCalendarContent = document.getElementById('tab-calendar-content');
@@ -1499,6 +1558,7 @@
         const tabCalcContent = document.getElementById('tab-calc-content');
         const tabCompassContent = document.getElementById('tab-compass-content');
         const tabWeatherContent = document.getElementById('tab-weather-content');
+        const tabMapContent = document.getElementById('tab-map-content');
 
         function clearMainTabs() {
             stopCompassSensor();
@@ -1506,8 +1566,8 @@
                 window.ChronosCompass.setWeatherTabVisible(false);
             }
 
-            [navClock, navCalendar, navDays, navTimer, navCalc, navCompass, navWeather].forEach(n => n.classList.remove('active'));
-            [tabClockContent, tabCalendarContent, tabDaysContent, tabTimerContent, tabCalcContent, tabCompassContent, tabWeatherContent].forEach(t => t.classList.remove('active'));
+            [navClock, navCalendar, navDays, navTimer, navCalc, navCompass, navWeather, navMap].forEach(n => n.classList.remove('active'));
+            [tabClockContent, tabCalendarContent, tabDaysContent, tabTimerContent, tabCalcContent, tabCompassContent, tabWeatherContent, tabMapContent].forEach(t => t.classList.remove('active'));
             document.getElementById('dropdown-list').classList.remove('show');
         }
 
@@ -1562,6 +1622,13 @@
             window.setTimeout(positionWeatherWidget, 100);
         });
 
+        navMap.addEventListener('click', () => {
+            clearMainTabs();
+            navMap.classList.add('active');
+            tabMapContent.classList.add('active');
+            initializeGoogleMap();
+        });
+
         const weatherStatus = document.getElementById('weather-status');
         const weatherWidgetSlot = document.getElementById('weather-widget-slot');
         const weatherWidgetPlaceholder = document.getElementById('weather-widget-placeholder');
@@ -1594,9 +1661,85 @@
         window.addEventListener('resize', positionWeatherWidget);
         window.addEventListener('scroll', positionWeatherWidget, true);
 
+        // --- GOOGLE MAPS EMBED API: MAPA INTERATIVO DENTRO DO CHRONOS ---
+        const mapFrame = document.getElementById('google-map-frame');
+        const mapPlaceholder = document.getElementById('map-placeholder');
+        const mapStatus = document.getElementById('map-status');
+        const mapSearchInput = document.getElementById('map-search-input');
+        let googleMapsEmbedKey = null;
+        let googleMapZoom = 5;
+
+        function getMapsKey() {
+            if (googleMapsEmbedKey !== null) return googleMapsEmbedKey;
+            const bridge = window.ChronosCompass;
+            googleMapsEmbedKey = bridge && typeof bridge.getGoogleMapsEmbedApiKey === 'function'
+                ? bridge.getGoogleMapsEmbedApiKey()
+                : '';
+            return googleMapsEmbedKey || '';
+        }
+
+        function showMapNotConfigured() {
+            mapFrame.style.display = 'none';
+            mapPlaceholder.style.display = 'flex';
+            mapStatus.textContent = 'Para ativar o mapa, configure o segredo GOOGLE_MAPS_EMBED_API_KEY no GitHub Actions.';
+        }
+
+        function loadGoogleMap(url) {
+            const key = getMapsKey();
+            if (!key) {
+                showMapNotConfigured();
+                return;
+            }
+            mapFrame.onload = () => {
+                mapStatus.textContent = 'Google Maps carregado. Use os gestos para mover e ampliar o mapa.';
+            };
+            mapFrame.src = url;
+            mapFrame.style.display = 'block';
+            mapPlaceholder.style.display = 'none';
+            mapStatus.textContent = 'Mapa do Google carregando…';
+        }
+
+        function initializeGoogleMap() {
+            const key = getMapsKey();
+            if (!key) {
+                showMapNotConfigured();
+                return;
+            }
+            loadGoogleMap('https://www.google.com/maps/embed/v1/view?key=' +
+                encodeURIComponent(key) + '&center=-14.2350%2C-51.9253&zoom=' + googleMapZoom);
+        }
+
+        function searchGoogleMap() {
+            const query = mapSearchInput.value.trim();
+            const key = getMapsKey();
+            if (!key) {
+                showMapNotConfigured();
+                return;
+            }
+            if (!query) {
+                mapStatus.textContent = 'Digite um endereço, cidade ou lugar para pesquisar.';
+                return;
+            }
+            loadGoogleMap('https://www.google.com/maps/embed/v1/search?key=' +
+                encodeURIComponent(key) + '&q=' + encodeURIComponent(query));
+        }
+
+        document.getElementById('map-search-button').addEventListener('click', searchGoogleMap);
+        mapSearchInput.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                searchGoogleMap();
+            }
+        });
+        document.getElementById('map-reset-button').addEventListener('click', () => {
+            googleMapZoom = 5;
+            mapSearchInput.value = '';
+            initializeGoogleMap();
+        });
+
         // Navegação por gesto: deslize o conteúdo para a esquerda/direita para trocar de aba.
         const chronosTabs = [
-            navClock, navCalendar, navDays, navTimer, navCalc, navCompass, navWeather
+            navClock, navCalendar, navDays, navTimer, navCalc, navCompass, navWeather, navMap
         ];
         const navStrip = document.querySelector('.bottom-nav');
         const swipeArea = document.querySelector('.container');
