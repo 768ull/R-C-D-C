@@ -22,10 +22,6 @@ android {
         versionName appVersionName
     }
 
-    buildFeatures {
-        buildConfig true
-    }
-
     signingConfigs {
         chronos {
             if (chronosKeystore.exists()) {

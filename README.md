@@ -2,7 +2,7 @@
 
 Aplicativo Android nativo do **Chronos**: relógio analógico e digital, calendário brasileiro com mapeamento de feriados e festas, cronograma diário de tarefas, contagens regressivas (próximos anos e feriados do Brasil) e calculadora com conversão de horas para minutos.
 
-O aplicativo funciona de forma **offline e autônoma**: a interface HTML/JS/CSS está embutida nos assets do APK e é executada em um WebView local em modo imersivo (tela cheia, sem barras do sistema). A sincronização de dias, meses e contagens ocorre exclusivamente pelo relógio do aparelho. A internet é usada apenas pela verificação de atualizações — sem conexão, tudo continua funcionando normalmente.
+O aplicativo funciona de forma **offline e autônoma**: a interface HTML/JS/CSS está embutida nos assets do APK e é executada em um WebView local em modo imersivo (tela cheia, sem barras do sistema). A sincronização de dias, meses e contagens ocorre exclusivamente pelo relógio do aparelho. Nenhuma permissão é solicitada e nenhuma conexão com a internet é utilizada.
 
 ## Funcionalidades
 
@@ -15,7 +15,6 @@ O aplicativo funciona de forma **offline e autônoma**: a interface HTML/JS/CSS 
 - Contagem regressiva dos próximos cinco anos e de todos os feriados catalogados.
 - Calculadora com operações básicas e conversão de horas para minutos.
 - Bloqueio de zoom, seleção de texto e menus nativos do navegador, com comportamento de aplicativo.
-- **Sistema de atualização**: o aplicativo verifica automaticamente a versão instalada contra a última versão publicada no GitHub e avisa quando há uma nova; também é possível verificar manualmente pelo botão de download na barra superior. A nova versão é instalada diretamente sobre a anterior, sem precisar desinstalar nada.
 
 ## Sistema de versões e atualização
 
@@ -56,8 +55,6 @@ Observação de segurança: a chave fica versionada no repositório por conveni�
 2. Baixe o APK da versão mais recente (`chronos-v1.N.apk`).
 3. Instale normalmente: o Android reconhecerá a assinatura idêntica e instalará como atualização, preservando o aplicativo já existente.
 
-Alternativa: dentro do próprio aplicativo, toque no ícone de download na barra superior; se houver versão nova, um aviso aparecerá com o botão Atualizar, que abre a página da nova versão para download.
-
 ## Como compilar manualmente
 
 ### Android Studio
@@ -80,4 +77,4 @@ O build local usa a mesma chave de assinatura do repositório, quando presente e
 ## Requisitos
 
 - Android 7.0 (API 24) ou superior.
-- Permissão de internet usada apenas pela verificação de atualizações; todas as demais funções prescindem de conexão.
+- Nenhuma permissão é solicitada: o aplicativo funciona integralmente sem conexão.
