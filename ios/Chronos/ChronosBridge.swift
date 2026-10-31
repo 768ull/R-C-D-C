@@ -57,7 +57,7 @@ final class ChronosBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDe
         case "requestAlarmPermission":
             requestAlarmPermission()
         case "openSystemClock":
-            callJS("onChronosWeatherStatus", ["O iOS não permite que o Chronos abra diretamente a tela interna do app Relógio. Seus alarmes continuam disponíveis no Chronos.", false])
+            showAlert("O iOS não permite que o Chronos abra diretamente a tela interna do app Relógio. Seus alarmes continuam disponíveis no Chronos.")
         default:
             break
         }
@@ -67,7 +67,7 @@ final class ChronosBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDe
 
     private func startCompass() {
         guard CLLocationManager.headingAvailable() else {
-            callJS("onChronosCompassStatus", ["Este iPhone não disponibiliza leitura de bússola."])
+            showAlert("Este iPhone não disponibiliza leitura de bússola.")
             return
         }
         locationManager.startUpdatingHeading()
@@ -294,6 +294,8 @@ final class ChronosBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDe
             guard let self else { return }
             if granted, (updated["enabled"] as? Bool ?? true) {
                 self.scheduleAlarm(updated)
+            } else if !granted {
+                self.showAlert("Ative as notificações do Chronos nos Ajustes do iPhone para receber este alarme.")
             }
         }
     }
@@ -307,7 +309,11 @@ final class ChronosBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDe
         removeAlarmNotifications(identifier)
         if enabled {
             requestNotificationAuthorization { [weak self] granted in
-                guard granted, let self else { return }
+                guard let self else { return }
+                guard granted else {
+                    self.showAlert("As notificações estão desativadas. Ative-as nos Ajustes para receber os alarmes.")
+                    return
+                }
                 if let alarm = self.alarms.first(where: { self.alarmID($0["id"]) == identifier }) {
                     self.scheduleAlarm(alarm)
                 }
@@ -329,12 +335,12 @@ final class ChronosBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDe
 
     private func requestAlarmPermission() {
         requestNotificationAuthorization { [weak self] granted in
-            self?.callJS("onChronosWeatherStatus", [
+            guard let self else { return }
+            self.showAlert(
                 granted
                     ? "Permissão de notificações concedida. O iOS poderá entregar os alarmes como notificações."
-                    : "As notificações estão desativadas. Ative-as nos Ajustes para receber os alarmes do Chronos.",
-                granted
-            ])
+                    : "As notificações estão desativadas. Ative-as nos Ajustes para receber os alarmes do Chronos."
+            )
         }
     }
 
@@ -408,6 +414,10 @@ final class ChronosBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDe
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         completionHandler([.banner, .sound, .list])
+    }
+
+    private func showAlert(_ message: String) {
+        callJS("alert", [message])
     }
 
     private func callJS(_ function: String, _ arguments: [Any]) {
