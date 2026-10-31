@@ -1,81 +1,90 @@
-# Chronos App — Android
+# Chronos — aplicativo Android
 
-Aplicativo Android nativo do **Chronos**: relógio analógico e digital, calendário brasileiro com mapeamento de feriados e festas, cronograma diário de tarefas, contagens regressivas (próximos anos e feriados do Brasil) e calculadora com conversão de horas para minutos.
+O **Chronos** é um aplicativo Android com interface construída em HTML, CSS e JavaScript, integrado a recursos nativos do Android por Java e WebView.
 
-O aplicativo funciona de forma **offline e autônoma**: a interface HTML/JS/CSS está embutida nos assets do APK e é executada em um WebView local em modo imersivo (tela cheia, sem barras do sistema). A sincronização de dias, meses e contagens ocorre exclusivamente pelo relógio do aparelho. Nenhuma permissão é solicitada e nenhuma conexão com a internet é utilizada.
+O repositório é público e o código original do projeto está disponibilizado sob a licença **MIT**. O histórico de versões publicadas, desde as primeiras releases até a v1.55, está indexado em [SOURCE_CODE.md](SOURCE_CODE.md).
 
 ## Funcionalidades
 
-- Relógio analógico com ponteiro contínuo (modo sweep) e som de tique-taque opcional.
-- Display digital com data completa em português.
-- Tema claro e escuro, sincronizado com a preferência do sistema.
-- Modo imersivo de tela cheia: barra de status e de navegação ocultas.
-- Calendário mensal com destaque do dia atual e de feriados e festas brasileiras (incluindo datas móveis calculadas pelo algoritmo de Gauss, como Carnaval e Páscoa).
-- Cronograma diário com adição, conclusão e remoção de tarefas.
-- Contagem regressiva dos próximos cinco anos e de todos os feriados catalogados.
-- Cronômetro em tempo real por ano: escolha ou digite um ano específico e acompanhe, para todos os feriados e festas do ano selecionado e para eventos personalizados criados por você (nome e data), contagens ao segundo em ordem cronológica, com destaque para o próximo evento. Os eventos personalizados ficam salvos no aparelho e podem ser removidos a qualquer momento.
-- Calculadora com operações básicas e conversão de horas para minutos.
-- Bloqueio de zoom, seleção de texto e menus nativos do navegador, com comportamento de aplicativo.
+- Relógio analógico e digital, com ponteiro contínuo opcional e som de tique-taque.
+- Personalização da cor do ponteiro dos segundos, com paleta e seletor de cor personalizado.
+- Temas claro e escuro, com preferência salva no dispositivo.
+- Despertador nativo do Android, com repetição por dias, vibração, toque, soneca e restauração após reinicialização.
+- Calendário brasileiro, feriados e datas comemorativas.
+- Cronograma diário com tarefas salvas localmente.
+- Contagens regressivas e eventos personalizados.
+- Cronômetro, calculadora e conversão de horas em minutos.
+- Bússola baseada nos sensores do aparelho.
+- Previsão do tempo com dados do Open-Meteo.
+- Mapa baseado em OpenStreetMap e Leaflet, com pesquisa de lugares.
 
-## Sistema de versões e atualização
+As funções locais — como relógio, calendário, calculadora e alarmes já programados — continuam disponíveis sem depender de uma conexão contínua. Previsão do tempo, mapas e pesquisas externas precisam de internet.
 
-Cada execução do CI produz uma versão nova e crescente (`1.N`, em que `N` é o número da execução) e publica:
+## Código-fonte e versões
 
-- Um **Release** do GitHub (`v1.N`) com o APK `chronos-v1.N.apk` pronto para download direto.
-- Um artefato `chronos-apk` na execução do workflow.
+- [Código atual (branch main)](https://github.com/768ull/R-C-D-C/tree/main)
+- [Todas as versões e seus códigos-fonte](SOURCE_CODE.md)
+- [Todas as releases e APKs](https://github.com/768ull/R-C-D-C/releases)
+- [Histórico de alterações](CHANGELOG.md)
 
-A **chave de assinatura estável** (`keystore/chronos-release-key.jks`) é gerada automaticamente na primeira execução do CI e persistida no repositório. Todas as versões seguintes são assinadas com a mesma chave, por isso o Android aceita a instalação como atualização sobre qualquer versão anterior, sem exigir desinstalação.
-
-Observação de segurança: a chave fica versionada no repositório por conveniência. Se o repositório for público e isso for uma preocupação, recomenda-se movê-la para GitHub Secrets (keystore em base64 e senhas) e ajustar o workflow e o `app/build.gradle` para lê-las de lá.
+Cada release do GitHub está associada a uma tag. Abrindo a tag é possível navegar pelo código exatamente como estava naquela versão; a página da release também disponibiliza os arquivos de origem gerados automaticamente pelo GitHub.
 
 ## Estrutura do projeto
 
-```
+```text
 .
-├── .github/workflows/android-build.yml   # CI: chave estável, APK versionado e Releases
-├── keystore/chronos-release-key.jks      # Chave de assinatura estável (gerada pelo CI)
+├── .github/workflows/android-build.yml  # compilação e publicação automatizadas
 ├── app/
-│   ├── build.gradle
+│   ├── build.gradle                     # configuração do módulo Android
 │   ├── proguard-rules.pro
 │   └── src/main/
 │       ├── AndroidManifest.xml
-│       ├── assets/index.html             # Aplicação completa (HTML/JS/CSS)
-│       ├── java/com/chronos/app/MainActivity.java
-│       └── res/
-│           ├── drawable/ic_launcher.xml
-│           └── values/{strings,colors,themes}.xml
+│       ├── assets/index.html             # interface HTML, CSS e JavaScript
+│       ├── java/com/chronos/app/         # integração Android em Java
+│       └── res/                          # ícones e recursos Android
+├── gradle/wrapper/                      # configuração do Gradle Wrapper
 ├── build.gradle
 ├── settings.gradle
 ├── gradle.properties
-└── gradle/wrapper/gradle-wrapper.properties
+├── LICENSE
+├── SECURITY.md
+└── SOURCE_CODE.md
 ```
 
-## Como obter e atualizar o aplicativo
+Arquivos de assinatura são credenciais de publicação, não código-fonte, e não devem ser compartilhados em cópias de desenvolvimento.
 
-1. Abra a página de [Releases](https://github.com/768ull/R-C-D-C/releases) do repositório.
-2. Baixe o APK da versão mais recente (`chronos-v1.N.apk`).
-3. Instale normalmente: o Android reconhecerá a assinatura idêntica e instalará como atualização, preservando o aplicativo já existente.
+## Como compilar
 
-## Como compilar manualmente
+### Requisitos
 
-### Android Studio
+- JDK 17.
+- Android SDK 34.
+- Gradle 8.7.
+- Android 7.0 (API 24) ou superior para executar o aplicativo.
 
-1. Clone o repositório: `git clone https://github.com/768ull/R-C-D-C.git`
-2. Abra a pasta no Android Studio (aguarde a sincronização do Gradle).
-3. Selecione **Build > Build App Bundle(s) / APK(s) > Build APK(s)**.
+### Pelo Android Studio
 
-### Linha de comando
+1. Clone o repositório.
+2. Abra a pasta do projeto no Android Studio.
+3. Aguarde a sincronização do Gradle.
+4. Use **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
 
-Requisitos: JDK 17 e Gradle 8.7 (ou Android Studio com SDK 34 instalado).
+### Pela linha de comando
 
 ```bash
-gradle assembleDebug
-# APK: app/build/outputs/apk/debug/app-debug.apk
+gradle assembleDebug --no-daemon
 ```
 
-O build local usa a mesma chave de assinatura do repositório, quando presente em `keystore/`.
+O APK de desenvolvimento será gerado em `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Requisitos
+A compilação local pode usar uma chave de depuração criada pelo Android Gradle Plugin. Para publicar uma atualização compatível com instalações existentes, a assinatura precisa seguir a política de gerenciamento de chaves descrita em [SECURITY.md](SECURITY.md).
 
-- Android 7.0 (API 24) ou superior.
-- Nenhuma permissão é solicitada: o aplicativo funciona integralmente sem conexão.
+## Dependências e serviços externos
+
+O módulo Android utiliza AndroidX AppCompat e AndroidX WebKit. O mapa carrega Leaflet 1.9.4 e blocos do OpenStreetMap; pesquisas de lugares e previsão do tempo dependem dos respectivos serviços externos. Esses componentes e serviços mantêm suas próprias licenças e condições de uso.
+
+A licença MIT deste repositório se aplica ao código original do Chronos. Ela não substitui nem altera as licenças de bibliotecas, serviços, mapas ou outros materiais de terceiros.
+
+## Licença
+
+O código original do Chronos está sob a licença [MIT](LICENSE). Consulte o arquivo da licença para os termos completos.

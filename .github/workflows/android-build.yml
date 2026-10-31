@@ -5,6 +5,16 @@ on:
     branches: [ main ]
     paths-ignore:
       - 'keystore/**'
+      # Documentation-only changes must not create a new APK release.
+      - 'README.md'
+      - 'SOURCE_CODE.md'
+      - 'LICENSE'
+      - 'SECURITY.md'
+      - 'CONTRIBUTING.md'
+      - 'CHANGELOG.md'
+      - '.gitignore'
+      # Run builds manually when changing this workflow itself.
+      - '.github/workflows/android-build.yml'
   workflow_dispatch:
 
 permissions:

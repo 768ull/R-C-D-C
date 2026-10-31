@@ -9,4 +9,10 @@ captures/
 .cxx/
 *.apk
 *.aab
+# Signing keys and private certificates must not be newly added.
+keystore/
+*.jks
+*.keystore
+*.p12
+*.pem
 !debug.keystore
