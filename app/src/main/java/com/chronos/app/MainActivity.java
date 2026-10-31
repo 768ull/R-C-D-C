@@ -2,6 +2,11 @@ package com.chronos.app;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.widget.Toast;
+import java.util.Locale;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -162,6 +167,63 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         public void stopCompass() {
             compassRequested = false;
             runOnUiThread(() -> unregisterCompassSensors());
+        }
+
+        /**
+         * Abre o aplicativo de clima do fabricante, quando instalado.
+         * Em aparelhos Infinix/Tecno/itel, a primeira opção é o Daily Weather
+         * da Transsion (com.rlk.weathers).
+         */
+        @JavascriptInterface
+        public boolean openNativeWeather() {
+            String maker = Build.MANUFACTURER == null
+                    ? "" : Build.MANUFACTURER.toLowerCase(Locale.ROOT);
+
+            String[] transsionPackages = {
+                    "com.rlk.weathers",
+                    "com.transsion.weather"
+            };
+            String[] otherPackages = {
+                    "com.sec.android.daemonapp",
+                    "com.miui.weather2",
+                    "com.coloros.weather2",
+                    "com.vivo.weather",
+                    "com.huawei.android.totemweather",
+                    "com.motorola.timeweatherwidget",
+                    "com.google.android.apps.weather"
+            };
+
+            java.util.ArrayList<String> candidates = new java.util.ArrayList<>();
+            if (maker.contains("infinix") || maker.contains("tecno")
+                    || maker.contains("itel") || maker.contains("transsion")) {
+                candidates.addAll(java.util.Arrays.asList(transsionPackages));
+            }
+            candidates.addAll(java.util.Arrays.asList(otherPackages));
+            candidates.addAll(java.util.Arrays.asList(transsionPackages));
+
+            PackageManager pm = getPackageManager();
+            for (String packageName : candidates) {
+                try {
+                    Intent launchIntent = pm.getLaunchIntentForPackage(packageName);
+                    if (launchIntent != null) {
+                        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        final Intent intentToLaunch = launchIntent;
+                        runOnUiThread(() -> {
+                            try {
+                                startActivity(intentToLaunch);
+                            } catch (Exception e) {
+                                Toast.makeText(MainActivity.this,
+                                        "Não foi possível abrir o aplicativo de clima.",
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        return true;
+                    }
+                } catch (Exception ignored) {
+                    // Continua a procura em outros aplicativos de clima conhecidos.
+                }
+            }
+            return false;
         }
     }
 
