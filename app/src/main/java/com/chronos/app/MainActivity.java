@@ -10,7 +10,10 @@ import android.os.Bundle;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import androidx.webkit.WebViewAssetLoader;
+import androidx.webkit.WebViewClientCompat;
 import android.graphics.Color;
 import android.view.View;
 import android.view.Gravity;
@@ -156,8 +159,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
+        // O conteúdo local é servido por HTTPS pelo WebViewAssetLoader.
+        // Desativa os acessos diretos a file:// e content:// por segurança.
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(false);
+        settings.setAllowFileAccessFromFileURLs(false);
+        settings.setAllowUniversalAccessFromFileURLs(false);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setTextZoom(100);
@@ -167,7 +174,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // A interface JavaScript só é adicionada depois de ativar JavaScript.
         webView.addJavascriptInterface(new CompassBridge(), "ChronosCompass");
         webView.addJavascriptInterface(new AlarmBridge(), "ChronosAlarm");
-        webView.setWebViewClient(new WebViewClient() {
+        // Expõe os assets locais em uma origem HTTPS segura e compatível
+        // com Same-Origin, sem depender do esquema file://.
+        final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
+
+        webView.setWebViewClient(new WebViewClientCompat() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(
+                    WebView view, WebResourceRequest request) {
+                return assetLoader.shouldInterceptRequest(request.getUrl());
+            }
+
+            // Mantém também a sobrecarga legada para compatibilidade do WebView.
+            @Override
+            @SuppressWarnings("deprecation")
+            public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
+                return assetLoader.shouldInterceptRequest(Uri.parse(url));
+            }
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
@@ -177,7 +203,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // não revele uma cor diferente enquanto o WebView recompõe a página.
         webView.setBackgroundColor(getColor(R.color.window_background));
         webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
-        webView.loadUrl("file:///android_asset/index.html");
+        webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
     }
 
     private void enableImmersiveFullscreen() {
