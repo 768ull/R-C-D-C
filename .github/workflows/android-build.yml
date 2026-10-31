@@ -1,4 +1,4 @@
-name: Build APK
+name: Build APK and AAB
 
 on:
   push:
@@ -12,6 +12,7 @@ on:
       - 'SECURITY.md'
       - 'CONTRIBUTING.md'
       - 'CHANGELOG.md'
+      - '.github/workflows/android-build.yml'
       - '.gitignore'
       # Run builds manually when changing this workflow itself.
   workflow_dispatch:
@@ -24,9 +25,9 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      APP_VERSION_CODE: '56'
+      APP_VERSION_CODE: ${{ github.run_number }}
       # Mantém esta correção dentro da v1.55; outras compilações seguem a numeração automática.
-      APP_VERSION_NAME: '1.55'
+      APP_VERSION_NAME: ${{ (contains(github.event.head_commit.message, '[patch-v1.55]') || contains(github.event.head_commit.message, '[aab-v1.55]')) && '1.55' || format('1.{0}', github.run_number) }}
       CHRONOS_KEYSTORE_PASSWORD: chronos-key
       CHRONOS_KEY_ALIAS: chronos
       CHRONOS_KEY_PASSWORD: chronos-key
@@ -75,24 +76,24 @@ jobs:
             echo "Chave já persistida no repositório."
           fi
 
-      - name: Compilar APK completo sem redução de recursos
+      - name: Compilar APK e Android App Bundle
         run: gradle assembleDebug bundleRelease --no-daemon -PAPP_VERSION_CODE="$APP_VERSION_CODE" -PAPP_VERSION_NAME="$APP_VERSION_NAME"
 
-      - name: Preparar APK com nome versionado
+      - name: Preparar APK e AAB com nomes versionados
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk "dist/chronos-v${APP_VERSION_NAME}.apk"
           cp app/build/outputs/bundle/release/app-release.aab "dist/chronos-v${APP_VERSION_NAME}.aab"
 
-      - name: Publicar APK como artefato
+      - name: Publicar APK e AAB como artefatos
         uses: actions/upload-artifact@v4
         with:
-          name: chronos-apk
+          name: chronos-build
           path: |
             dist/chronos-v${{ env.APP_VERSION_NAME }}.apk
             dist/chronos-v${{ env.APP_VERSION_NAME }}.aab
 
-      - name: Publicar release com o APK
+      - name: Publicar release com APK e AAB
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.APP_VERSION_NAME }}
@@ -100,7 +101,7 @@ jobs:
           body: |
             Versão ${{ env.APP_VERSION_NAME }} do Chronos App.
 
-            Baixe o APK abaixo e instale diretamente sobre a versão anterior: a assinatura é a mesma, não é preciso desinstalar nada.
+            Baixe o APK para instalar diretamente no Android ou o AAB para enviar ao Google Play Console. A assinatura continua sujeita à política de chaves do projeto.
           files: |
             dist/chronos-v${{ env.APP_VERSION_NAME }}.apk
             dist/chronos-v${{ env.APP_VERSION_NAME }}.aab
