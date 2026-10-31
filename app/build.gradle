@@ -23,7 +23,7 @@ android {
         versionCode appVersionCode
         versionName appVersionName
         // A chave vem do segredo do CI; não é gravada no código-fonte.
-        resValue "string", "google_maps_embed_api_key", "\\"${googleMapsEmbedApiKey}\\""
+        resValue "string", "google_maps_embed_api_key", googleMapsEmbedApiKey
     }
 
     signingConfigs {
