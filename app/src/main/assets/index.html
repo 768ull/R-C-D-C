@@ -850,41 +850,52 @@
         /* --- BARRA DE NAVEGAÇÃO DE ABAS INFERIOR --- */
         .bottom-nav {
             display: flex;
+            align-items: stretch;
+            justify-content: space-between;
+            gap: 6px;
             width: 100%;
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 6px;
+            border-radius: 18px;
+            padding: 8px 7px;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03);
             flex-shrink: 0;
-            margin-top: 10px;
+            margin-top: 12px;
         }
 
-
         .nav-item {
-            flex: 1;
+            flex: 1 1 0;
+            min-width: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 7px;
             background: transparent;
             border: none;
+            border-radius: 12px;
             color: var(--text-color);
-            opacity: 0.5;
+            opacity: 0.52;
             cursor: pointer;
-            padding: 6px 0;
-            font-size: 0.7rem;
-            font-weight: 600;
-            transition: opacity 0.2s, color 0.2s;
+            padding: 8px 2px;
+            font-size: 0.62rem;
+            line-height: 1.15;
+            white-space: nowrap;
+            font-weight: 650;
+            transition: opacity 0.2s, color 0.2s, background-color 0.2s;
             -webkit-tap-highlight-color: transparent;
         }
 
+        .nav-item.active { opacity: 1; color: var(--accent-color); background: rgba(56, 189, 248, 0.07); }
+        .nav-item svg { width: 21px; height: 21px; flex: 0 0 auto; fill: currentColor; }
 
-        .nav-item.active { opacity: 1; color: var(--accent-color); }
-        .nav-item svg { width: 20px; height: 20px; fill: currentColor; }
+        @media (max-width: 370px) {
+            .bottom-nav { gap: 3px; padding: 7px 4px; }
+            .nav-item { font-size: 0.56rem; gap: 6px; padding: 7px 1px; }
+            .nav-item svg { width: 19px; height: 19px; }
+        }
 
         /* --- ABA BÚSSOLA --- */
         .compass-view {
