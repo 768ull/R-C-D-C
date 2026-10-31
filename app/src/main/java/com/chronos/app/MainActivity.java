@@ -23,6 +23,9 @@ import android.appwidget.AppWidgetProviderInfo;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Process;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.TextView;
 import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -62,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float weatherWidgetTop = 0f;
     private float weatherWidgetWidth = 0f;
     private float weatherWidgetHeight = 0f;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private SensorManager sensorManager;
     private Sensor rotationVectorSensor;
@@ -91,8 +95,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         rootLayout = new FrameLayout(this);
         rootLayout.setClipChildren(false);
         rootLayout.setClipToPadding(false);
-        appWidgetManager = AppWidgetManager.getInstance(this);
-        weatherWidgetHost = new AppWidgetHost(this, WEATHER_HOST_ID);
+        // Widgets de terceiros devem ser inflados com ApplicationContext.
+        // Usar AppCompatActivity aqui pode fazer RemoteViews falhar e mostrar
+        // a tela de erro "Não foi possível adicionar widget".
+        Context appContext = getApplicationContext();
+        appWidgetManager = AppWidgetManager.getInstance(appContext);
+        weatherWidgetHost = new AppWidgetHost(appContext, WEATHER_HOST_ID);
 
         webView = new WebView(this);
         rootLayout.addView(webView, new FrameLayout.LayoutParams(
@@ -378,20 +386,85 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         if (weatherWidgetView != null) rootLayout.removeView(weatherWidgetView);
 
-        AppWidgetHostView hostView = weatherWidgetHost.createView(this, id, info);
-        hostView.setAppWidget(id, info);
-        hostView.setFocusable(true);
+        try {
+            // createView já associa o ID e o AppWidgetProviderInfo à HostView.
+            // Não chamar setAppWidget uma segunda vez.
+            AppWidgetHostView hostView = weatherWidgetHost.createView(
+                    getApplicationContext(), id, info);
+            hostView.setFocusable(true);
         hostView.setVisibility(View.GONE);
-        weatherWidgetView = hostView;
-        weatherWidgetId = id;
-        rootLayout.addView(hostView, new FrameLayout.LayoutParams(1, 1,
-                Gravity.TOP | Gravity.LEFT));
-        weatherPreferences().edit().putInt(WEATHER_WIDGET_ID_KEY, id).apply();
+            weatherWidgetView = hostView;
+            weatherWidgetId = id;
+            rootLayout.addView(hostView, new FrameLayout.LayoutParams(1, 1,
+                    Gravity.TOP | Gravity.LEFT));
+            weatherPreferences().edit().putInt(WEATHER_WIDGET_ID_KEY, id).apply();
 
-        sendWeatherStatus(
-                "Widget oficial do Daily Weather conectado. A previsão mostrada é fornecida pelo serviço de clima do telefone.",
-                true);
-        layoutWeatherWidget();
+            sendWeatherStatus("Permissão concedida. Verificando a visualização oficial do clima…", false);
+            layoutWeatherWidget();
+            verifyWeatherWidgetRendering(hostView, id, 0);
+        } catch (Exception e) {
+            if (weatherWidgetView != null) {
+                rootLayout.removeView(weatherWidgetView);
+                weatherWidgetView = null;
+            }
+            weatherWidgetId = INVALID_WIDGET_ID;
+            weatherWidgetHost.deleteAppWidgetId(id);
+            weatherPreferences().edit().remove(WEATHER_WIDGET_ID_KEY).apply();
+            sendWeatherStatus(
+                    "O Android autorizou a integração, mas não conseguiu renderizar o widget do Daily Weather.",
+                    false);
+        }
+    }
+
+    private void verifyWeatherWidgetRendering(
+            AppWidgetHostView view, int appWidgetId, int attempt) {
+        if (view == null || weatherWidgetView != view || weatherWidgetId != appWidgetId) return;
+
+        if (containsWidgetRenderingError(view)) {
+            view.setVisibility(View.GONE);
+            rootLayout.removeView(view);
+            weatherWidgetView = null;
+            weatherWidgetId = INVALID_WIDGET_ID;
+            weatherPreferences().edit().remove(WEATHER_WIDGET_ID_KEY).apply();
+            weatherWidgetHost.deleteAppWidgetId(appWidgetId);
+            sendWeatherStatus(
+                    "O Android vinculou o widget, mas o Daily Weather não conseguiu fornecer uma visualização compatível para o Chronos. O serviço não será marcado como conectado.",
+                    false);
+            return;
+        }
+
+        // Dá alguns ciclos ao provedor para entregar RemoteViews ao host.
+        if (attempt < 8) {
+            mainHandler.postDelayed(
+                    () -> verifyWeatherWidgetRendering(view, appWidgetId, attempt + 1),
+                    750L);
+        } else {
+            sendWeatherStatus(
+                    "Widget oficial do Daily Weather conectado. A previsão é fornecida pelo serviço de clima do telefone.",
+                    true);
+        }
+    }
+
+    private boolean containsWidgetRenderingError(View view) {
+        if (view instanceof TextView) {
+            CharSequence text = ((TextView) view).getText();
+            if (text != null) {
+                String value = text.toString().toLowerCase(Locale.ROOT);
+                if (value.contains("não foi possível adicionar widget")
+                        || value.contains("nao foi possivel adicionar widget")
+                        || value.contains("couldn't add widget")
+                        || value.contains("could not add widget")) {
+                    return true;
+                }
+            }
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                if (containsWidgetRenderingError(group.getChildAt(i))) return true;
+            }
+        }
+        return false;
     }
 
     private void restoreWeatherWidgetIfAvailable() {
