@@ -1031,6 +1031,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            android.app.AlarmManager alarmManager =
+                    (android.app.AlarmManager) getSystemService(ALARM_SERVICE);
+            if (alarmManager != null && alarmManager.canScheduleExactAlarms()) {
+                AlarmReceiver.restore(this);
+            }
+        }
         if (webView != null) {
             webView.onResume();
             webView.resumeTimers();
