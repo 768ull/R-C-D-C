@@ -361,6 +361,103 @@
 
         .opt-btn.active { background-color: var(--accent-color); color: white; border-color: var(--accent-color); }
 
+        /* Personalização da cor do ponteiro dos segundos. */
+        .second-hand-color-panel {
+            width: 100%;
+            max-width: 380px;
+            margin: 5px auto 12px;
+            padding: 10px 12px 11px;
+            background: var(--clock-bg);
+            border: 1px solid var(--clock-border);
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .second-hand-color-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 9px;
+            color: var(--text-color);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .second-hand-color-value {
+            color: var(--text-color);
+            opacity: 0.65;
+            font-family: monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .second-hand-color-options {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 9px;
+        }
+
+        .second-hand-color-swatch,
+        .second-hand-custom-trigger {
+            position: relative;
+            display: inline-flex;
+            flex: 0 0 28px;
+            width: 28px;
+            height: 28px;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: 2px solid var(--clock-bg);
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px var(--clock-border);
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        .second-hand-color-swatch.selected,
+        .second-hand-custom-trigger.selected {
+            box-shadow: 0 0 0 2px var(--accent-color);
+            transform: scale(1.08);
+        }
+
+        .second-hand-color-swatch:focus-visible,
+        .second-hand-custom-trigger:focus-within {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 3px;
+        }
+
+        .second-hand-custom-trigger {
+            flex-basis: 30px;
+            width: 30px;
+            height: 30px;
+            overflow: hidden;
+            border: 2px solid var(--clock-bg);
+            background: conic-gradient(
+                #ff3b30 0deg, #ff9500 45deg, #ffcc00 90deg,
+                #34c759 135deg, #30b0c7 180deg, #007aff 225deg,
+                #af52de 270deg, #ff2d55 315deg, #ff3b30 360deg
+            );
+            color: #ffffff;
+            font-size: 17px;
+            font-weight: 800;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.75);
+        }
+
+        .second-hand-custom-trigger input {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
         /* --- ABA CALENDÁRIO COM CRONOGRAMA --- */
         .calendar-view-container {
             display: flex;
@@ -1311,6 +1408,29 @@
                 <button class="opt-btn active" id="sweep-toggle">Ponteiro Contínuo</button>
                 <button class="opt-btn" id="sound-toggle">Som (Tick)</button>
             </div>
+
+            <section class="second-hand-color-panel" aria-label="Personalizar a cor do ponteiro dos segundos">
+                <div class="second-hand-color-heading">
+                    <span>Cor do ponteiro</span>
+                    <span class="second-hand-color-value" id="second-hand-color-value">#FF3B30</span>
+                </div>
+                <div class="second-hand-color-options" id="second-hand-color-options">
+                <button type="button" class="second-hand-color-swatch selected" data-second-hand-color="#ff3b30" style="background-color: #ff3b30" aria-label="Ponteiro Vermelho" aria-pressed="true" title="Vermelho"></button>
+                <button type="button" class="second-hand-color-swatch" data-second-hand-color="#ff9500" style="background-color: #ff9500" aria-label="Ponteiro Laranja" aria-pressed="false" title="Laranja"></button>
+                <button type="button" class="second-hand-color-swatch" data-second-hand-color="#ffcc00" style="background-color: #ffcc00" aria-label="Ponteiro Amarelo" aria-pressed="false" title="Amarelo"></button>
+                <button type="button" class="second-hand-color-swatch" data-second-hand-color="#34c759" style="background-color: #34c759" aria-label="Ponteiro Verde" aria-pressed="false" title="Verde"></button>
+                <button type="button" class="second-hand-color-swatch" data-second-hand-color="#30b0c7" style="background-color: #30b0c7" aria-label="Ponteiro Turquesa" aria-pressed="false" title="Turquesa"></button>
+                <button type="button" class="second-hand-color-swatch" data-second-hand-color="#007aff" style="background-color: #007aff" aria-label="Ponteiro Azul" aria-pressed="false" title="Azul"></button>
+                <button type="button" class="second-hand-color-swatch" data-second-hand-color="#af52de" style="background-color: #af52de" aria-label="Ponteiro Roxo" aria-pressed="false" title="Roxo"></button>
+                <button type="button" class="second-hand-color-swatch" data-second-hand-color="#ff2d55" style="background-color: #ff2d55" aria-label="Ponteiro Rosa" aria-pressed="false" title="Rosa"></button>
+                <button type="button" class="second-hand-color-swatch" data-second-hand-color="#ffffff" style="background-color: #ffffff" aria-label="Ponteiro Branco" aria-pressed="false" title="Branco"></button>
+                <button type="button" class="second-hand-color-swatch" data-second-hand-color="#1c1c1e" style="background-color: #1c1c1e" aria-label="Ponteiro Preto" aria-pressed="false" title="Preto"></button>
+                    <label class="second-hand-custom-trigger" id="second-hand-custom-trigger" title="Escolher uma cor personalizada" aria-label="Escolher uma cor personalizada">
+                        <span aria-hidden="true">＋</span>
+                        <input type="color" id="second-hand-custom-color" value="#ff3b30" aria-label="Escolher cor personalizada">
+                    </label>
+                </div>
+            </section>
         </div>
 
 
@@ -2274,6 +2394,12 @@
         const themeIcon = document.getElementById('theme-icon');
         const sweepToggle = document.getElementById('sweep-toggle');
         const soundToggle = document.getElementById('sound-toggle');
+        const secondHandColorInput = document.getElementById('second-hand-custom-color');
+        const secondHandColorValue = document.getElementById('second-hand-color-value');
+        const secondHandCustomTrigger = document.getElementById('second-hand-custom-trigger');
+        const secondHandColorSwatches = Array.from(
+            document.querySelectorAll('[data-second-hand-color]')
+        );
         const clockFace = document.getElementById('clock-face');
         const calMonthTitle = document.getElementById('cal-month-title');
         const calendarGrid = document.getElementById('calendar-grid');
@@ -3080,13 +3206,60 @@
 
         // Preferências do aplicativo também são mantidas entre sessões.
         const APP_PREFERENCES_KEY = 'chronos-app-preferences';
+        const DEFAULT_SECOND_HAND_COLOR = '#ff3b30';
+        let secondHandColor = DEFAULT_SECOND_HAND_COLOR;
+
+        function normalizeSecondHandColor(value) {
+            return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
+                ? value.toLowerCase()
+                : null;
+        }
+
+        function applySecondHandColor(value, persist) {
+            const normalized = normalizeSecondHandColor(value);
+            if (!normalized) return;
+
+            secondHandColor = normalized;
+            // O estilo inline no body prevalece sobre os temas claro e escuro.
+            document.body.style.setProperty('--second-hand', secondHandColor);
+
+            if (secondHandColorInput.value !== secondHandColor) {
+                secondHandColorInput.value = secondHandColor;
+            }
+            secondHandColorValue.textContent = secondHandColor.toUpperCase();
+
+            let matchesPreset = false;
+            secondHandColorSwatches.forEach(button => {
+                const selected = button.dataset.secondHandColor.toLowerCase() === secondHandColor;
+                button.classList.toggle('selected', selected);
+                button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+                if (selected) matchesPreset = true;
+            });
+            secondHandCustomTrigger.classList.toggle('selected', !matchesPreset);
+
+            if (persist) saveAppPreferences();
+        }
+
+        secondHandColorSwatches.forEach(button => {
+            button.addEventListener('click', () => {
+                applySecondHandColor(button.dataset.secondHandColor, true);
+            });
+        });
+
+        secondHandColorInput.addEventListener('input', () => {
+            applySecondHandColor(secondHandColorInput.value, false);
+        });
+        secondHandColorInput.addEventListener('change', () => {
+            applySecondHandColor(secondHandColorInput.value, true);
+        });
 
         function saveAppPreferences() {
             try {
                 localStorage.setItem(APP_PREFERENCES_KEY, JSON.stringify({
                     theme: document.body.getAttribute('data-theme') || 'light',
                     sweep: isSweepMode,
-                    sound: isSoundOn
+                    sound: isSoundOn,
+                    secondHandColor: secondHandColor
                 }));
             } catch (e) {
                 console.error('Não foi possível salvar as preferências:', e);
@@ -3101,6 +3274,9 @@
                 if (!prefs || typeof prefs !== 'object') return null;
                 if (typeof prefs.sweep === 'boolean') isSweepMode = prefs.sweep;
                 if (typeof prefs.sound === 'boolean') isSoundOn = prefs.sound;
+                const savedSecondHandColor = normalizeSecondHandColor(prefs.secondHandColor);
+                if (savedSecondHandColor) secondHandColor = savedSecondHandColor;
+                applySecondHandColor(secondHandColor, false);
                 return prefs;
             } catch (e) {
                 console.error('Não foi possível carregar as preferências:', e);
@@ -3150,6 +3326,7 @@
         // Restaura primeiro as escolhas anteriores; só usa o tema do Android
         // quando o usuário ainda não escolheu um tema manualmente.
         const savedAppPreferences = loadAppPreferences();
+        applySecondHandColor(secondHandColor, false);
         const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         const initialTheme = savedAppPreferences && (savedAppPreferences.theme === 'dark' || savedAppPreferences.theme === 'light')
             ? savedAppPreferences.theme
