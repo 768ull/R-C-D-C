@@ -14,7 +14,6 @@ on:
       - 'CHANGELOG.md'
       - '.gitignore'
       # Run builds manually when changing this workflow itself.
-      - '.github/workflows/android-build.yml'
   workflow_dispatch:
 
 permissions:
