@@ -687,6 +687,166 @@
         .calc-btn.operator { background: var(--calc-btn-op); color: white; border-color: var(--calc-btn-op); }
         .calc-btn.special { background: var(--calc-btn-spec); }
 
+        /* --- ABA CRONÔMETRO EM TEMPO REAL --- */
+        .timer-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            flex-shrink: 0;
+            margin-bottom: 10px;
+        }
+
+        .timer-year-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            width: 100%;
+            background: var(--clock-bg);
+            border: 1px solid var(--clock-border);
+            border-radius: 12px;
+            padding: 8px 10px;
+            flex-shrink: 0;
+        }
+
+        .timer-year-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            opacity: 0.65;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        .timer-year-input {
+            width: 72px;
+            background: var(--input-bg);
+            border: 1px solid var(--clock-border);
+            border-radius: 10px;
+            padding: 6px 2px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--accent-color);
+            text-align: center;
+            outline: none;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        .timer-year-apply {
+            background: var(--accent-color);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .timer-event-row {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        .timer-input {
+            background: var(--input-bg);
+            border: 1px solid var(--clock-border);
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            color: var(--text-color);
+            outline: none;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        .timer-input-name { flex-grow: 1; min-width: 0; }
+        .timer-input-date { width: 112px; flex-shrink: 0; }
+
+        .timer-add-btn {
+            background: var(--accent-color);
+            color: #ffffff;
+            border: none;
+            padding: 0 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .timer-hint {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #ff3b30;
+            min-height: 0;
+            padding: 0 4px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .timer-hint.show { opacity: 1; }
+
+        .timer-list {
+            flex-grow: 1;
+            width: 100%;
+            overflow-y: auto;
+            padding-right: 2px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            touch-action: pan-y;
+        }
+
+        .timer-list::-webkit-scrollbar { width: 4px; }
+        .timer-list::-webkit-scrollbar-thumb { background: var(--clock-border); border-radius: 10px; }
+
+        .countdown-card.timer-past { opacity: 0.45; }
+        .countdown-card.timer-next { border-left: 4px solid var(--accent-color); }
+        .countdown-card.timer-today { border-left: 4px solid var(--calendar-holiday-match); }
+
+        .counter-time {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.5px;
+        }
+
+        .timer-title-row { display: flex; align-items: center; gap: 6px; }
+
+        .timer-del-btn {
+            background: transparent;
+            border: none;
+            color: #ff3b30;
+            cursor: pointer;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .timer-del-btn svg { width: 13px; height: 13px; fill: currentColor; }
+
+        @media (max-height: 660px) {
+            .timer-year-row { padding: 5px 8px; }
+            .timer-year-input { padding: 4px 2px; font-size: 0.85rem; }
+            .timer-year-apply { padding: 6px 10px; font-size: 0.72rem; }
+            .timer-input { padding: 5px 8px; font-size: 0.75rem; }
+            .timer-input-date { width: 96px; }
+            .counter-days { font-size: 1.05rem; }
+            .counter-time { font-size: 0.8rem; }
+        }
+
         /* --- BARRA DE NAVEGAÇÃO DE ABAS INFERIOR --- */
         .bottom-nav {
             display: flex;
@@ -879,6 +1039,31 @@
             </div>
         </div>
 
+        <!-- CONTEÚDO: ABA CRONÔMETRO EM TEMPO REAL -->
+        <div id="tab-timer-content" class="tab-content">
+            <div class="days-tab-container">
+                <div class="timer-controls">
+                    <div class="timer-year-row">
+                        <span class="timer-year-label">Ano do Cronômetro</span>
+                        <button class="cal-nav-arrow" onpointerdown="shiftTimerYear(-1)">‹</button>
+                        <input type="number" id="timer-year-input" class="timer-year-input" inputmode="numeric" onkeypress="applyTimerYearKey(event)">
+                        <button class="cal-nav-arrow" onpointerdown="shiftTimerYear(1)">›</button>
+                        <button class="timer-year-apply" onpointerdown="applyTimerYear()">Ir</button>
+                    </div>
+
+                    <div class="timer-event-row">
+                        <input type="text" class="timer-input timer-input-name" id="timer-event-name" placeholder="Nome do evento ou festa..." onkeypress="handleTimerEventKey(event)">
+                        <input type="text" class="timer-input timer-input-date" id="timer-event-date" placeholder="dd/mm" inputmode="numeric" onkeypress="handleTimerEventKey(event)">
+                        <button class="timer-add-btn" onpointerdown="addTimerEvent()">+</button>
+                    </div>
+
+                    <div class="timer-hint" id="timer-hint">Preencha o nome e a data no formato dd/mm ou dd/mm/aaaa.</div>
+                </div>
+
+                <div class="timer-list" id="timer-list"></div>
+            </div>
+        </div>
+
         <!-- CONTEÚDO: ABA CALCULADORA -->
         <div id="tab-calc-content" class="tab-content">
             <div class="calculator-wrapper">
@@ -937,6 +1122,12 @@
                 </svg>
                 <span>Dias</span>
             </button>
+            <button class="nav-item" id="nav-timer">
+                <svg viewBox="0 0 24 24">
+                    <path fill-rule="evenodd" d="M10,1H14V3.5H10V1ZM12,5A8,8 0 1,0 20,13A8,8 0 1,0 12,21A8,8 0 1,0 4,13A8,8 0 1,0 12,5ZM12,7A6,6 0 1,0 18,13A6,6 0 1,0 12,19A6,6 0 1,0 6,13A6,6 0 1,0 12,7ZM11.3,9.5H12.7V13H11.3V9.5Z" />
+                </svg>
+                <span>Cronômetro</span>
+            </button>
             <button class="nav-item" id="nav-calc">
                 <svg viewBox="0 0 24 24">
                     <path d="M7,2H17A2,2 0 0,1 19,4V20A2,2 0 0,1 17,22H7A2,2 0 0,1 5,20V4A2,2 0 0,1 7,2M7,4V8H17V4H7M7,10v2h2V10H7M11,10v2h2V10H11M15,10v2h2V10H15M7,14v2h2V14H7M11,14v2h2V14H11M15,14v2h2V14H15M7,18v2h2V18H7M11,18v2h2V18H11M15,18v2h2V18H15Z"/>
@@ -976,17 +1167,19 @@
         const navClock = document.getElementById('nav-clock');
         const navCalendar = document.getElementById('nav-calendar');
         const navDays = document.getElementById('nav-days');
+        const navTimer = document.getElementById('nav-timer');
         const navCalc = document.getElementById('nav-calc');
-        
+
         const tabClockContent = document.getElementById('tab-clock-content');
         const tabCalendarContent = document.getElementById('tab-calendar-content');
         const tabDaysContent = document.getElementById('tab-days-content');
+        const tabTimerContent = document.getElementById('tab-timer-content');
         const tabCalcContent = document.getElementById('tab-calc-content');
 
         function clearMainTabs() {
 
-            [navClock, navCalendar, navDays, navCalc].forEach(n => n.classList.remove('active'));
-            [tabClockContent, tabCalendarContent, tabDaysContent, tabCalcContent].forEach(t => t.classList.remove('active'));
+            [navClock, navCalendar, navDays, navTimer, navCalc].forEach(n => n.classList.remove('active'));
+            [tabClockContent, tabCalendarContent, tabDaysContent, tabTimerContent, tabCalcContent].forEach(t => t.classList.remove('active'));
             document.getElementById('dropdown-list').classList.remove('show');
         }
 
@@ -1010,6 +1203,13 @@
             navDays.classList.add('active');
             tabDaysContent.classList.add('active');
             updateCountdowns();
+        });
+
+        navTimer.addEventListener('click', () => {
+            clearMainTabs();
+            navTimer.classList.add('active');
+            tabTimerContent.classList.add('active');
+            buildTimerList();
         });
 
         navCalc.addEventListener('click', () => {
@@ -1134,6 +1334,9 @@
                 if (tabDaysContent.classList.contains('active')) {
                     updateCountdowns();
                 }
+                if (tabTimerContent.classList.contains('active')) {
+                    buildTimerList();
+                }
             }
 
             let secondDeg = isSweepMode ? (seconds * 6) + (milliseconds * 0.006) : seconds * 6;
@@ -1150,6 +1353,9 @@
                 lastSecond = seconds;
                 if (tabDaysContent.classList.contains('active')) {
                     updateCountdowns();
+                }
+                if (tabTimerContent.classList.contains('active')) {
+                    updateTimerDisplays();
                 }
             }
 
@@ -1453,6 +1659,221 @@
             return card;
         }
 
+        // --- ABA CRONÔMETRO: CONTAGEM EM TEMPO REAL POR ANO SELECIONADO ---
+        let timerYear = new Date().getFullYear();
+        let timerCustomEvents = [];
+        let timerCardRefs = [];
+        let timerHintTimeout = null;
+
+        function pad2(value) {
+            return String(value).padStart(2, '0');
+        }
+
+        function loadTimerEvents() {
+            try {
+                const stored = localStorage.getItem('chronos-timer-events');
+                timerCustomEvents = stored ? JSON.parse(stored) : [];
+            } catch (e) {
+                timerCustomEvents = [];
+            }
+        }
+
+        function saveTimerEvents() {
+            try {
+                localStorage.setItem('chronos-timer-events', JSON.stringify(timerCustomEvents));
+            } catch (e) {
+                /* Sem armazenamento disponível: os eventos permanecem apenas nesta sessão */
+            }
+        }
+
+        function syncTimerYearInput() {
+            document.getElementById('timer-year-input').value = timerYear;
+        }
+
+        function shiftTimerYear(direction) {
+            timerYear = Math.min(3000, Math.max(1900, timerYear + direction));
+            syncTimerYearInput();
+            buildTimerList();
+        }
+
+        function applyTimerYear() {
+            const parsed = parseInt(document.getElementById('timer-year-input').value.trim(), 10);
+            if (!isNaN(parsed) && parsed >= 1900 && parsed <= 3000) {
+                timerYear = parsed;
+                buildTimerList();
+            } else {
+                syncTimerYearInput();
+                showTimerHint('Digite um ano entre 1900 e 3000.');
+            }
+        }
+
+        function applyTimerYearKey(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                applyTimerYear();
+            }
+        }
+
+        function handleTimerEventKey(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addTimerEvent();
+            }
+        }
+
+        function showTimerHint(message) {
+            const hintEl = document.getElementById('timer-hint');
+            hintEl.textContent = message;
+            hintEl.classList.add('show');
+            if (timerHintTimeout) clearTimeout(timerHintTimeout);
+            timerHintTimeout = setTimeout(() => hintEl.classList.remove('show'), 3500);
+        }
+
+        function addTimerEvent() {
+            const nameEl = document.getElementById('timer-event-name');
+            const dateEl = document.getElementById('timer-event-date');
+            const name = nameEl.value.trim();
+            const dateStr = dateEl.value.trim();
+
+            if (!name || !dateStr) {
+                showTimerHint('Preencha o nome e a data no formato dd/mm ou dd/mm/aaaa.');
+                return;
+            }
+
+            const match = dateStr.match(/^(\d{1,2})\s*\/\s*(\d{1,2})\s*(?:\/\s*(\d{4}))?$/);
+            if (!match) {
+                showTimerHint('Data inválida. Use dd/mm ou dd/mm/aaaa.');
+                return;
+            }
+
+            const day = parseInt(match[1], 10);
+            const month = parseInt(match[2], 10);
+            const year = match[3] ? parseInt(match[3], 10) : null;
+            const probe = new Date(year !== null ? year : timerYear, month - 1, day);
+
+            if (month < 1 || month > 12 || probe.getMonth() !== month - 1 || probe.getDate() !== day) {
+                showTimerHint('Essa data não existe. Verifique o dia e o mês.');
+                return;
+            }
+
+            timerCustomEvents.push({ id: Date.now(), name: name, day: day, month: month, year: year });
+            saveTimerEvents();
+
+            nameEl.value = '';
+            dateEl.value = '';
+            buildTimerList();
+        }
+
+        function deleteTimerEvent(id) {
+            timerCustomEvents = timerCustomEvents.filter(ev => ev.id !== id);
+            saveTimerEvents();
+            buildTimerList();
+        }
+
+        function buildTimerList() {
+            const listEl = document.getElementById('timer-list');
+            listEl.innerHTML = '';
+            timerCardRefs = [];
+
+            const now = Date.now();
+            const targets = [];
+
+            // Todos os feriados e festas do ano selecionado (datas móveis via Gauss)
+            holidayTemplate.forEach(h => {
+                targets.push({ id: null, name: h.name, date: getHolidayDate(h, timerYear), custom: false });
+            });
+
+            // Eventos personalizados: recorrentes seguem o ano selecionado;
+            // eventos com ano fixo (dd/mm/aaaa) permanecem ancorados ao próprio ano
+            timerCustomEvents.forEach(ev => {
+                const evYear = (ev.year !== null && ev.year !== undefined) ? ev.year : timerYear;
+                targets.push({ id: ev.id, name: ev.name, date: new Date(evYear, ev.month - 1, ev.day), custom: true });
+            });
+
+            // ORDEM CORRETA: classificação cronológica absoluta
+            targets.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+            let nextAssigned = false;
+
+            targets.forEach(t => {
+                const start = new Date(t.date.getFullYear(), t.date.getMonth(), t.date.getDate()).getTime();
+                const end = start + 86400000;
+                const state = now < start ? 'future' : (now < end ? 'today' : 'past');
+                const isNext = state === 'future' && !nextAssigned;
+                if (state === 'future') nextAssigned = true;
+
+                const card = document.createElement('div');
+                card.className = 'countdown-card' +
+                    (state === 'past' ? ' timer-past' : '') +
+                    (state === 'today' ? ' timer-today' : '') +
+                    (isNext ? ' timer-next' : '');
+
+                const delButton = t.custom
+                    ? `<button class="timer-del-btn" onpointerdown="deleteTimerEvent(${t.id})"><svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg></button>`
+                    : '';
+
+                card.innerHTML = `
+                    <div class="card-info">
+                        <div class="timer-title-row">
+                            <span class="card-title">${t.name}</span>
+                            ${delButton}
+                        </div>
+                        <span class="card-subtitle">${t.date.toLocaleDateString('pt-BR', { weekday: 'long' })}, ${t.date.toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    <div class="card-counter">
+                        <span class="counter-days"></span>
+                        <span class="counter-time"></span>
+                        <div class="counter-label"></div>
+                    </div>
+                `;
+
+                const bigEl = card.querySelector('.counter-days');
+                const timeEl = card.querySelector('.counter-time');
+                const labelEl = card.querySelector('.counter-label');
+
+                if (state !== 'future') {
+                    bigEl.textContent = state === 'today' ? 'Hoje!' : 'Concluído';
+                    timeEl.style.display = 'none';
+                    labelEl.textContent = state === 'today' ? 'é hoje' : 'já ocorreu';
+                } else {
+                    labelEl.textContent = 'restantes';
+                }
+
+                listEl.appendChild(card);
+                timerCardRefs.push({ state: state, targetMs: start, endMs: end, lastDays: null, bigEl: bigEl, timeEl: timeEl, labelEl: labelEl });
+            });
+
+            updateTimerDisplays();
+        }
+
+        // Atualização em tempo real: chamada a cada segundo pelo relógio principal.
+        // Atualiza apenas os nós de texto, preservando a posição de rolagem da lista.
+        function updateTimerDisplays() {
+            const now = Date.now();
+            let needsRebuild = false;
+
+            timerCardRefs.forEach(ref => {
+                if (ref.state === 'future' && now >= ref.targetMs) { needsRebuild = true; return; }
+                if (ref.state === 'today' && now >= ref.endMs) { needsRebuild = true; return; }
+                if (ref.state !== 'future') return;
+
+                const diff = ref.targetMs - now;
+                const days = Math.floor(diff / 86400000);
+                const hours = Math.floor(diff / 3600000) % 24;
+                const minutes = Math.floor(diff / 60000) % 60;
+                const seconds = Math.floor(diff / 1000) % 60;
+
+                if (ref.lastDays !== days) {
+                    ref.lastDays = days;
+                    ref.bigEl.textContent = days === 1 ? '1 dia' : `${days} dias`;
+                }
+
+                ref.timeEl.textContent = `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`;
+            });
+
+            if (needsRebuild) buildTimerList();
+        }
+
         // --- OPERAÇÕES DA CALCULADORA ---
         const calcExprEl = document.getElementById('calc-expr');
         const calcResultEl = document.getElementById('calc-result');
@@ -1548,6 +1969,7 @@
             renderCalendar();
             renderSchedule();
             if (tabDaysContent.classList.contains('active')) updateCountdowns();
+            if (tabTimerContent.classList.contains('active')) buildTimerList();
         });
 
         // Inicialização automática sincronizada com as preferências do Android
@@ -1564,6 +1986,9 @@
         populateCustomDropdown();
         renderCalendar();
         renderSchedule();
+        loadTimerEvents();
+        syncTimerYearInput();
+        buildTimerList();
 
         requestAnimationFrame(updateClock);
     </script>

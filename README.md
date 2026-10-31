@@ -13,6 +13,7 @@ O aplicativo funciona de forma **offline e autônoma**: a interface HTML/JS/CSS 
 - Calendário mensal com destaque do dia atual e de feriados e festas brasileiras (incluindo datas móveis calculadas pelo algoritmo de Gauss, como Carnaval e Páscoa).
 - Cronograma diário com adição, conclusão e remoção de tarefas.
 - Contagem regressiva dos próximos cinco anos e de todos os feriados catalogados.
+- Cronômetro em tempo real por ano: escolha ou digite um ano específico e acompanhe, para todos os feriados e festas do ano selecionado e para eventos personalizados criados por você (nome e data), contagens ao segundo em ordem cronológica, com destaque para o próximo evento. Os eventos personalizados ficam salvos no aparelho e podem ser removidos a qualquer momento.
 - Calculadora com operações básicas e conversão de horas para minutos.
 - Bloqueio de zoom, seleção de texto e menus nativos do navegador, com comportamento de aplicativo.
 
