@@ -5,9 +5,6 @@ plugins {
 // Versões fornecidas pelo CI (propriedades -P); valores padrão para builds locais.
 def appVersionCode = (project.findProperty('APP_VERSION_CODE') ?: '1').toInteger()
 def appVersionName = (project.findProperty('APP_VERSION_NAME') ?: '1.0').toString()
-def googleMapsEmbedApiKey = (System.getenv('GOOGLE_MAPS_EMBED_API_KEY') ?:
-    project.findProperty('GOOGLE_MAPS_EMBED_API_KEY') ?: '').toString()
-
 // Chave de assinatura estável: garante que toda nova versão seja instalada
 // diretamente sobre a anterior, sem exigir desinstalação.
 def chronosKeystore = rootProject.file('keystore/chronos-release-key.jks')
@@ -22,8 +19,6 @@ android {
         targetSdk 34
         versionCode appVersionCode
         versionName appVersionName
-        // A chave vem do segredo do CI; não é gravada no código-fonte.
-        resValue "string", "google_maps_embed_api_key", googleMapsEmbedApiKey
     }
 
     signingConfigs {

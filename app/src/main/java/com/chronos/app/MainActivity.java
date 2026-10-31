@@ -27,6 +27,16 @@ import android.os.Handler;
 import android.os.Looper;
 import android.widget.TextView;
 import org.json.JSONObject;
+import org.json.JSONArray;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -67,6 +77,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float weatherWidgetWidth = 0f;
     private float weatherWidgetHeight = 0f;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final ExecutorService mapSearchExecutor = Executors.newSingleThreadExecutor();
+    private volatile long lastMapSearchTimeMs = 0L;
 
     private SensorManager sensorManager;
     private Sensor rotationVectorSensor;
@@ -115,8 +127,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setTextZoom(100);
+        settings.setUserAgentString(settings.getUserAgentString()
+                + " Chronos/1.24 (+https://github.com/768ull/R-C-D-C)");
 
         // A interface JavaScript só é adicionada depois de ativar JavaScript.
         webView.addJavascriptInterface(new CompassBridge(), "ChronosCompass");
@@ -197,6 +211,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (sensorManager != null) sensorManager.unregisterListener(this);
     }
 
+    private void sendMapSearchResult(JSONArray results, String error) {
+        if (webView == null) return;
+        String resultJson = results == null ? "[]" : results.toString();
+        String errorJson = error == null ? "null" : JSONObject.quote(error);
+        webView.post(() -> webView.evaluateJavascript(
+                "if (window.onChronosMapSearchResult) window.onChronosMapSearchResult("
+                        + resultJson + "," + errorJson + ");", null));
+    }
+
     private void sendCompassStatus(String message) {
         if (webView == null) return;
         final String safeMessage = message.replace("\\", "\\\\").replace("'", "\\'");
@@ -207,8 +230,66 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private final class CompassBridge {
         @JavascriptInterface
-        public String getGoogleMapsEmbedApiKey() {
-            return getString(R.string.google_maps_embed_api_key);
+        public void searchMapPlace(String query) {
+            if (query == null || query.trim().isEmpty()) {
+                sendMapSearchResult(new JSONArray(), "Digite um endereço para pesquisar.");
+                return;
+            }
+            final String safeQuery = query.trim();
+            mapSearchExecutor.execute(() -> {
+                HttpURLConnection connection = null;
+                try {
+                    long waitMs = 1100L - (System.currentTimeMillis() - lastMapSearchTimeMs);
+                    if (waitMs > 0) Thread.sleep(waitMs);
+                    lastMapSearchTimeMs = System.currentTimeMillis();
+
+                    String encoded = URLEncoder.encode(safeQuery, StandardCharsets.UTF_8.name());
+                    URL url = new URL("https://nominatim.openstreetmap.org/search?format=jsonv2"
+                            + "&limit=5&addressdetails=1&accept-language=pt-BR&q=" + encoded);
+                    connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("GET");
+                    connection.setConnectTimeout(12000);
+                    connection.setReadTimeout(12000);
+                    connection.setRequestProperty("Accept", "application/json");
+                    connection.setRequestProperty("User-Agent",
+                            "Chronos/1.24 (+https://github.com/768ull/R-C-D-C)");
+
+                    int responseCode = connection.getResponseCode();
+                    InputStream stream = responseCode >= 200 && responseCode < 300
+                            ? connection.getInputStream() : connection.getErrorStream();
+                    if (stream == null) throw new IllegalStateException("Resposta vazia do serviço de pesquisa.");
+
+                    StringBuilder body = new StringBuilder();
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) body.append(line);
+                    }
+                    if (responseCode < 200 || responseCode >= 300) {
+                        throw new IllegalStateException("O serviço de pesquisa respondeu HTTP " + responseCode + ".");
+                    }
+
+                    JSONArray source = new JSONArray(body.toString());
+                    JSONArray results = new JSONArray();
+                    for (int i = 0; i < source.length() && i < 5; i++) {
+                        JSONObject item = source.getJSONObject(i);
+                        JSONObject result = new JSONObject();
+                        result.put("lat", item.optString("lat"));
+                        result.put("lon", item.optString("lon"));
+                        result.put("name", item.optString("display_name", "Local encontrado"));
+                        results.put(result);
+                    }
+                    sendMapSearchResult(results, null);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    sendMapSearchResult(new JSONArray(), "Pesquisa cancelada.");
+                } catch (Exception e) {
+                    sendMapSearchResult(new JSONArray(),
+                            "Não foi possível pesquisar agora. Verifique a internet e tente novamente.");
+                } finally {
+                    if (connection != null) connection.disconnect();
+                }
+            });
         }
 
         @JavascriptInterface
@@ -645,6 +726,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             webView.destroy();
             webView = null;
         }
+        mapSearchExecutor.shutdownNow();
         super.onDestroy();
     }
 }

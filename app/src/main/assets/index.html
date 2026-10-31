@@ -5,6 +5,7 @@
     <!-- Bloqueia o zoom nativo do navegador tanto no carregamento quanto por gestos de pinça -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chronos App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
     <style>
         :root {
             --bg-color: #eef2f3;
@@ -922,8 +923,8 @@
             .nav-item svg { width: 20px; height: 20px; }
         }
 
-        /* --- MAPA GOOGLE MAPS --- */
-        .map-view { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; gap:12px; padding:6px 0 10px; }
+        /* --- MAPA OPENSTREETMAP + LEAFLET --- */
+        .map-view { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; gap:10px; padding:6px 0 8px; }
         .map-heading { display:flex; flex-direction:column; gap:4px; padding:2px 4px; }
         .map-heading strong { font-size:1.12rem; font-weight:800; }
         .map-heading span { font-size:0.76rem; opacity:0.66; line-height:1.4; }
@@ -931,15 +932,13 @@
         .map-search-input { flex:1 1 auto; min-width:0; padding:12px 14px; border-radius:13px; border:1px solid var(--glass-border); outline:none; background:var(--glass-bg); color:var(--text-color); font:inherit; font-size:0.86rem; }
         .map-search-button, .map-reset-button { flex:0 0 auto; border:0; border-radius:13px; padding:12px 14px; background:var(--accent-color); color:#fff; font-size:0.82rem; font-weight:750; cursor:pointer; }
         .map-reset-button { background:var(--glass-bg); border:1px solid var(--glass-border); color:var(--text-color); }
-        .map-frame-wrap { position:relative; flex:1 1 auto; min-height:240px; width:100%; overflow:hidden; border-radius:18px; border:1px solid var(--glass-border); background:var(--glass-bg); }
-        .map-frame-wrap iframe { display:none; width:100%; height:100%; min-height:240px; border:0; background:#e8edf2; }
-        .map-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; height:100%; min-height:240px; padding:24px; text-align:center; color:var(--text-color); }
-        .map-placeholder svg { width:50px; height:50px; fill:var(--accent-color); }
-        .map-placeholder strong { font-size:0.94rem; }
-        .map-placeholder span { max-width:290px; font-size:0.76rem; line-height:1.5; opacity:0.7; }
+        .map-frame-wrap { position:relative; flex:1 1 auto; min-height:260px; width:100%; overflow:hidden; border-radius:18px; border:1px solid var(--glass-border); background:#e8edf2; }
+        #chronos-map { width:100%; height:100%; min-height:260px; background:#e8edf2; }
         .map-status { min-height:2.5em; font-size:0.74rem; line-height:1.4; opacity:0.7; padding:0 3px; }
         .map-footer { display:flex; gap:8px; align-items:center; justify-content:space-between; }
-        .map-footer small { font-size:0.68rem; opacity:0.58; }
+        .map-footer small { font-size:0.68rem; opacity:0.68; }
+        .leaflet-container { font-family:inherit; }
+        .leaflet-control-attribution { font-size:10px !important; }
         @media (max-width:370px) { .map-search-button, .map-reset-button { padding:11px 10px; font-size:0.76rem; } .map-search-input { padding:11px 10px; } }
 
         /* --- ABA CLIMA: ACESSO AO APLICATIVO NATIVO DO FABRICANTE --- */
@@ -1417,31 +1416,22 @@
         <div id="tab-map-content" class="tab-content">
             <div class="map-view">
                 <div class="map-heading">
-                    <strong>Google Maps</strong>
-                    <span>Pesquise endereços e lugares e explore o mapa sem sair do Chronos.</span>
+                    <strong>OpenStreetMap</strong>
+                    <span>Mapa aberto, sem chave de API. Arraste para mover e use dois dedos para ampliar.</span>
                 </div>
                 <div class="map-search-row">
                     <input id="map-search-input" class="map-search-input" type="search"
-                        placeholder="Pesquisar endereço ou lugar" autocomplete="off" />
+                        placeholder="Pesquisar endereço, cidade ou lugar" autocomplete="off" />
                     <button id="map-search-button" class="map-search-button">Buscar</button>
                 </div>
                 <div class="map-frame-wrap">
-                    <iframe id="google-map-frame" title="Mapa do Google Maps"
-                        loading="lazy" allowfullscreen
-                        referrerpolicy="strict-origin-when-cross-origin"></iframe>
-                    <div id="map-placeholder" class="map-placeholder">
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.26-.36.49V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.26.36-.49V3.5c0-.28-.22-.5-.5-.5zM10 5.47l4 1.4v11.66l-4-1.4V5.47zM5 6.1l3-.99v12.02l-3 1V6.1zm14 12.8-3 1V7.9l3-1v12z"/>
-                        </svg>
-                        <strong>Mapa pronto para configurar</strong>
-                        <span>O Google Maps será exibido aqui depois que a chave restrita da Maps Embed API for adicionada às configurações do repositório.</span>
-                    </div>
+                    <div id="chronos-map" role="application" aria-label="Mapa interativo OpenStreetMap"></div>
                 </div>
                 <div class="map-footer">
                     <button id="map-reset-button" class="map-reset-button">Ver Brasil</button>
-                    <small>Google Maps · Conteúdo interativo</small>
+                    <small>© OpenStreetMap contributors · Leaflet</small>
                 </div>
-                <div id="map-status" class="map-status">A integração está preparada; falta configurar a chave da API.</div>
+                <div id="map-status" class="map-status">Mapa aberto carregando…</div>
             </div>
         </div>
 
@@ -1500,6 +1490,7 @@
         </nav>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // --- TRAVAS NATIVAS ESTILO ANDROID APP ---
         document.addEventListener('contextmenu', event => event.preventDefault(), false);
@@ -1661,80 +1652,97 @@
         window.addEventListener('resize', positionWeatherWidget);
         window.addEventListener('scroll', positionWeatherWidget, true);
 
-        // --- GOOGLE MAPS EMBED API: MAPA INTERATIVO DENTRO DO CHRONOS ---
-        const mapFrame = document.getElementById('google-map-frame');
-        const mapPlaceholder = document.getElementById('map-placeholder');
+        // --- OPENSTREETMAP + LEAFLET: MAPA ABERTO SEM CHAVE ---
         const mapStatus = document.getElementById('map-status');
         const mapSearchInput = document.getElementById('map-search-input');
-        let googleMapsEmbedKey = null;
-        let googleMapZoom = 5;
+        let chronosMap = null;
+        let mapSearchMarker = null;
 
-        function getMapsKey() {
-            if (googleMapsEmbedKey !== null) return googleMapsEmbedKey;
-            const bridge = window.ChronosCompass;
-            googleMapsEmbedKey = bridge && typeof bridge.getGoogleMapsEmbedApiKey === 'function'
-                ? bridge.getGoogleMapsEmbedApiKey()
-                : '';
-            return googleMapsEmbedKey || '';
-        }
-
-        function showMapNotConfigured() {
-            mapFrame.style.display = 'none';
-            mapPlaceholder.style.display = 'flex';
-            mapStatus.textContent = 'Para ativar o mapa, configure o segredo GOOGLE_MAPS_EMBED_API_KEY no GitHub Actions.';
-        }
-
-        function loadGoogleMap(url) {
-            const key = getMapsKey();
-            if (!key) {
-                showMapNotConfigured();
+        function initializeOpenMap() {
+            if (!window.L) {
+                mapStatus.textContent = 'Não foi possível carregar a biblioteca do mapa. Verifique a conexão com a internet.';
                 return;
             }
-            mapFrame.onload = () => {
-                mapStatus.textContent = 'Google Maps carregado. Use os gestos para mover e ampliar o mapa.';
-            };
-            mapFrame.src = url;
-            mapFrame.style.display = 'block';
-            mapPlaceholder.style.display = 'none';
-            mapStatus.textContent = 'Mapa do Google carregando…';
-        }
+            if (!chronosMap) {
+                chronosMap = L.map('chronos-map', {
+                    zoomControl: true,
+                    attributionControl: true,
+                    preferCanvas: true
+                }).setView([-14.2350, -51.9253], 4);
 
-        function initializeGoogleMap() {
-            const key = getMapsKey();
-            if (!key) {
-                showMapNotConfigured();
-                return;
+                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    minZoom: 2,
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+                    updateWhenIdle: true,
+                    keepBuffer: 2
+                }).addTo(chronosMap);
+
+                chronosMap.on('tileerror', () => {
+                    mapStatus.textContent = 'Alguns blocos do mapa não carregaram. Confira a conexão e tente novamente.';
+                });
             }
-            loadGoogleMap('https://www.google.com/maps/embed/v1/view?key=' +
-                encodeURIComponent(key) + '&center=-14.2350%2C-51.9253&zoom=' + googleMapZoom);
+            window.setTimeout(() => chronosMap.invalidateSize(true), 120);
+            mapStatus.textContent = 'OpenStreetMap pronto. Pesquise um endereço ou explore o mapa.';
         }
 
-        function searchGoogleMap() {
+        function searchOpenMap() {
             const query = mapSearchInput.value.trim();
-            const key = getMapsKey();
-            if (!key) {
-                showMapNotConfigured();
-                return;
-            }
             if (!query) {
                 mapStatus.textContent = 'Digite um endereço, cidade ou lugar para pesquisar.';
                 return;
             }
-            loadGoogleMap('https://www.google.com/maps/embed/v1/search?key=' +
-                encodeURIComponent(key) + '&q=' + encodeURIComponent(query));
+            const bridge = window.ChronosCompass;
+            if (!bridge || typeof bridge.searchMapPlace !== 'function') {
+                mapStatus.textContent = 'A pesquisa de lugares não está disponível nesta versão.';
+                return;
+            }
+            mapStatus.textContent = 'Pesquisando endereço…';
+            document.getElementById('map-search-button').disabled = true;
+            bridge.searchMapPlace(query);
         }
 
-        document.getElementById('map-search-button').addEventListener('click', searchGoogleMap);
+        window.onChronosMapSearchResult = function(results, error) {
+            document.getElementById('map-search-button').disabled = false;
+            if (error) {
+                mapStatus.textContent = error;
+                return;
+            }
+            if (!Array.isArray(results) || results.length === 0) {
+                mapStatus.textContent = 'Nenhum resultado encontrado. Tente informar cidade e estado.';
+                return;
+            }
+            if (!chronosMap) initializeOpenMap();
+            const first = results[0];
+            const lat = Number(first.lat);
+            const lon = Number(first.lon);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                mapStatus.textContent = 'O serviço de pesquisa retornou uma localização inválida.';
+                return;
+            }
+            if (mapSearchMarker) chronosMap.removeLayer(mapSearchMarker);
+            mapSearchMarker = L.marker([lat, lon]).addTo(chronosMap);
+            mapSearchMarker.bindPopup(String(first.name || 'Local encontrado')).openPopup();
+            chronosMap.setView([lat, lon], 16, { animate: true });
+            mapStatus.textContent = first.name || 'Local encontrado no OpenStreetMap.';
+        };
+
+        document.getElementById('map-search-button').addEventListener('click', searchOpenMap);
         mapSearchInput.addEventListener('keydown', event => {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                searchGoogleMap();
+                searchOpenMap();
             }
         });
         document.getElementById('map-reset-button').addEventListener('click', () => {
-            googleMapZoom = 5;
             mapSearchInput.value = '';
-            initializeGoogleMap();
+            if (!chronosMap) initializeOpenMap();
+            if (mapSearchMarker) {
+                chronosMap.removeLayer(mapSearchMarker);
+                mapSearchMarker = null;
+            }
+            chronosMap.setView([-14.2350, -51.9253], 4, { animate: true });
+            mapStatus.textContent = 'Visualização do Brasil.';
         });
 
         // Navegação por gesto: deslize o conteúdo para a esquerda/direita para trocar de aba.
