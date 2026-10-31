@@ -85,6 +85,14 @@ O módulo Android utiliza AndroidX AppCompat e AndroidX WebKit. O mapa carrega L
 
 A licença MIT deste repositório se aplica ao código original do Chronos. Ela não substitui nem altera as licenças de bibliotecas, serviços, mapas ou outros materiais de terceiros.
 
+## Versão para iPhone (iOS)
+
+O projeto iOS está separado na pasta [ios/](ios/), reutiliza a interface HTML do Chronos e usa Swift + WKWebView para os recursos nativos. A compilação do simulador é automatizada pelo workflow **Build Chronos iOS** no GitHub Actions.
+
+- [Projeto iOS e instruções de compilação/assinatura](ios/README.md)
+- O IPA para iPhone exige certificado Apple Distribution, perfil de provisionamento e os GitHub Secrets documentados no guia.
+- Nesta primeira etapa, os alarmes usam notificações locais do iOS; widgets próprios e integração AlarmKit são etapas futuras.
+
 ## Licença
 
 O código original do Chronos está sob a licença [MIT](LICENSE). Consulte o arquivo da licença para os termos completos.
