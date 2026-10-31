@@ -1,7 +1,10 @@
 package com.chronos.app;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -11,13 +14,14 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
+import org.json.JSONObject;
+
 /**
  * Activity principal do Chronos App.
- * Carrega a interface HTML/JS/CSS embutida em assets de forma 100% offline,
- * sem qualquer dependência de internet.
- * Executa em modo imersivo de tela cheia: barra de status e barra de
- * navegacao permanecem ocultas (reaparecem apenas de forma transitoria
- * por gesto de deslize a partir da borda da tela).
+ * Carrega a interface HTML/JS/CSS embutida em assets de forma offline,
+ * executa em modo imersivo de tela cheia e fornece, para a interface,
+ * a versão instalada do aplicativo e a abertura de links externos,
+ * utilizados pelo sistema de verificação de atualizações.
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -43,10 +47,44 @@ public class MainActivity extends AppCompatActivity {
         settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         settings.setTextZoom(100);
 
-        webView.setWebViewClient(new WebViewClient());
+        // Ponte JS <--> Android usada pela verificação de atualizações.
+        webView.addJavascriptInterface(new ChronosBridge(), "ChronosBridge");
+
+        webView.setWebViewClient(new WebViewClient() {
+            // Abre links externos no navegador do sistema, mantendo o
+            // aplicativo sempre na interface local.
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) {
+                    openExternalUrl(url);
+                    return true;
+                }
+                return false;
+            }
+
+            // Após o carregamento, injeta a versão instalada e dispara a
+            // verificação silenciosa de atualização.
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                String version = JSONObject.quote(BuildConfig.VERSION_NAME);
+                view.evaluateJavascript("window.chronosAppVersion=" + version + ";", null);
+                view.evaluateJavascript(
+                        "if (typeof chronosCheckForUpdates === 'function') chronosCheckForUpdates(true);",
+                        null);
+            }
+        });
+
         webView.setBackgroundColor(0xFF0F172A);
         webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
         webView.loadUrl("file:///android_asset/index.html");
+    }
+
+    private void openExternalUrl(String url) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        } catch (Exception ignored) {
+            // Nenhum navegador disponível: falha silenciosa.
+        }
     }
 
     /**
@@ -68,6 +106,27 @@ public class MainActivity extends AppCompatActivity {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
             enableImmersiveFullscreen();
+        }
+    }
+
+    /** Métodos expostos à interface HTML como window.ChronosBridge. */
+    private class ChronosBridge {
+
+        /**
+         * Abre uma URL externa no navegador do sistema.
+         * Usado para levar o usuário à página de download da nova versão.
+         */
+        @JavascriptInterface
+        public void openExternal(final String url) {
+            if (url == null) {
+                return;
+            }
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    openExternalUrl(url);
+                }
+            });
         }
     }
 

@@ -2,6 +2,14 @@ plugins {
     id 'com.android.application'
 }
 
+// Versões fornecidas pelo CI (propriedades -P); valores padrão para builds locais.
+def appVersionCode = (project.findProperty('APP_VERSION_CODE') ?: '1').toInteger()
+def appVersionName = (project.findProperty('APP_VERSION_NAME') ?: '1.0').toString()
+
+// Chave de assinatura estável: garante que toda nova versão seja instalada
+// diretamente sobre a anterior, sem exigir desinstalação.
+def chronosKeystore = rootProject.file('keystore/chronos-release-key.jks')
+
 android {
     namespace 'com.chronos.app'
     compileSdk 34
@@ -10,14 +18,37 @@ android {
         applicationId "com.chronos.app"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersionName
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        chronos {
+            if (chronosKeystore.exists()) {
+                storeFile chronosKeystore
+                storePassword System.getenv('CHRONOS_KEYSTORE_PASSWORD') ?: 'chronos-key'
+                keyAlias System.getenv('CHRONOS_KEY_ALIAS') ?: 'chronos'
+                keyPassword System.getenv('CHRONOS_KEY_PASSWORD') ?: 'chronos-key'
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            if (chronosKeystore.exists()) {
+                signingConfig signingConfigs.chronos
+            }
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (chronosKeystore.exists()) {
+                signingConfig signingConfigs.chronos
+            }
         }
     }
 

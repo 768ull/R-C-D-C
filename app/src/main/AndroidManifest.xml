@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Aplicativo 100% offline: nenhuma permissão de internet é solicitada. -->
+    <!-- A internet é usada exclusivamente pela verificação de atualizações.
+         Todas as demais funções do aplicativo continuam 100% offline. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"

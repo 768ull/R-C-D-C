@@ -3,11 +3,23 @@ name: Build APK
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'keystore/**'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    env:
+      APP_VERSION_CODE: ${{ github.run_number }}
+      APP_VERSION_NAME: 1.${{ github.run_number }}
+      CHRONOS_KEYSTORE_PASSWORD: chronos-key
+      CHRONOS_KEY_ALIAS: chronos
+      CHRONOS_KEY_PASSWORD: chronos-key
 
     steps:
       - name: Checkout do código
@@ -24,11 +36,57 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Compilar APK de debug
-        run: gradle assembleDebug --no-daemon
+      - name: Gerar chave de assinatura estável (apenas na primeira execução)
+        run: |
+          if [ ! -f keystore/chronos-release-key.jks ]; then
+            mkdir -p keystore
+            keytool -genkeypair -v \
+              -keystore keystore/chronos-release-key.jks \
+              -storetype PKCS12 \
+              -alias chronos \
+              -keyalg RSA -keysize 2048 \
+              -validity 10950 \
+              -storepass "$CHRONOS_KEYSTORE_PASSWORD" \
+              -keypass "$CHRONOS_KEY_PASSWORD" \
+              -dname "CN=Chronos App, OU=Chronos, O=768ull, C=BR"
+          else
+            echo "Chave de assinatura já existente: será reutilizada."
+          fi
+
+      - name: Persistir a chave no repositório (apenas na primeira execução)
+        run: |
+          if [ -n "$(git status --porcelain keystore)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add keystore
+            git commit -m "Adiciona chave de assinatura estável do Chronos"
+            git push
+          else
+            echo "Chave já persistida no repositório."
+          fi
+
+      - name: Compilar APK assinado
+        run: gradle assembleDebug --no-daemon -PAPP_VERSION_CODE="$APP_VERSION_CODE" -PAPP_VERSION_NAME="$APP_VERSION_NAME"
+
+      - name: Preparar APK com nome versionado
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/chronos-v${APP_VERSION_NAME}.apk"
 
       - name: Publicar APK como artefato
         uses: actions/upload-artifact@v4
         with:
-          name: chronos-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: chronos-apk
+          path: dist/chronos-v${{ env.APP_VERSION_NAME }}.apk
+
+      - name: Publicar release com o APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.APP_VERSION_NAME }}
+          name: Chronos v${{ env.APP_VERSION_NAME }}
+          body: |
+            Versão ${{ env.APP_VERSION_NAME }} do Chronos App.
+
+            Baixe o APK abaixo e instale diretamente sobre a versão anterior: a assinatura é a mesma, não é preciso desinstalar nada.
+          files: dist/chronos-v${{ env.APP_VERSION_NAME }}.apk
+          token: ${{ secrets.GITHUB_TOKEN }}
