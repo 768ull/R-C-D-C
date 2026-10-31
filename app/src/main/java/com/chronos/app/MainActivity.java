@@ -21,6 +21,10 @@ import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.Intent;
+import android.net.Uri;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.provider.Settings;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -64,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private static final int REQUEST_BIND_WEATHER_WIDGET = 8120;
     private static final int REQUEST_CONFIGURE_WEATHER_WIDGET = 8121;
     private static final int REQUEST_WEATHER_LOCATION_PERMISSION = 8122;
+    private static final int REQUEST_ALARM_TONE = 8124;
     private static final int INVALID_WIDGET_ID = AppWidgetManager.INVALID_APPWIDGET_ID;
     private static final String WEATHER_WIDGET_PREFS = "chronos_weather_widget";
     private static final String WEATHER_WIDGET_ID_KEY = "widget_id";
@@ -161,6 +166,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // A interface JavaScript só é adicionada depois de ativar JavaScript.
         webView.addJavascriptInterface(new CompassBridge(), "ChronosCompass");
+        webView.addJavascriptInterface(new AlarmBridge(), "ChronosAlarm");
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
@@ -454,6 +460,36 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+
+
+    private final class AlarmBridge {
+        @JavascriptInterface public String getAlarms(){return AlarmReceiver.alarmsJson(getApplicationContext());}
+        @JavascriptInterface public void saveAlarm(String json){try{JSONObject a=new JSONObject(json);runOnUiThread(()->{
+            if(android.os.Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
+                ActivityCompat.requestPermissions(MainActivity.this,new String[]{Manifest.permission.POST_NOTIFICATIONS},8123);
+            AlarmReceiver.save(getApplicationContext(),a);
+        });}catch(Exception ignored){}}
+        @JavascriptInterface public void setAlarmEnabled(String id,boolean enabled){try{AlarmReceiver.enable(getApplicationContext(),Long.parseLong(id),enabled);}catch(Exception ignored){}}
+        @JavascriptInterface public void deleteAlarm(String id){try{AlarmReceiver.delete(getApplicationContext(),Long.parseLong(id));}catch(Exception ignored){}}
+        @JavascriptInterface public void pickAlarmTone(String existing){runOnUiThread(()->{try{
+            Intent i=new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);i.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE,RingtoneManager.TYPE_ALARM);
+            i.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE,"Som do alarme");i.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT,true);
+            i.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT,false);if(existing!=null&&!existing.isEmpty())i.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,Uri.parse(existing));
+            startActivityForResult(i,REQUEST_ALARM_TONE);
+        }catch(Exception e){publishAlarmTone(null,null);}});}
+        @JavascriptInterface public void requestExactAlarmPermission(){runOnUiThread(()->{if(android.os.Build.VERSION.SDK_INT>=31){
+            android.app.AlarmManager am=(android.app.AlarmManager)getSystemService(ALARM_SERVICE);
+            if(am!=null&&!am.canScheduleExactAlarms())try{startActivity(new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,Uri.parse("package:"+getPackageName())));}
+            catch(Exception e){try{startActivity(new Intent(Settings.ACTION_SETTINGS));}catch(Exception ignored){}}
+            else android.widget.Toast.makeText(MainActivity.this,"Alarmes exatos já estão permitidos.",android.widget.Toast.LENGTH_SHORT).show();
+        }else android.widget.Toast.makeText(MainActivity.this,"Este Android não exige permissão especial.",android.widget.Toast.LENGTH_SHORT).show();});}
+        @JavascriptInterface public void openSystemClock(){runOnUiThread(()->{try{
+            Intent i=new Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS);if(i.resolveActivity(getPackageManager())!=null)startActivity(i);
+            else startActivity(new Intent(android.provider.AlarmClock.ACTION_SET_ALARM).putExtra(android.provider.AlarmClock.EXTRA_MESSAGE,"Chronos"));
+        }catch(Exception e){android.widget.Toast.makeText(MainActivity.this,"Relógio do telefone indisponível.",android.widget.Toast.LENGTH_SHORT).show();}});}
+    }
+    private void publishAlarmTone(Uri uri,String title){if(webView==null)return;String u=uri==null?"null":JSONObject.quote(uri.toString()),t=title==null?"null":JSONObject.quote(title);
+        webView.post(()->webView.evaluateJavascript("if(window.onChronosAlarmTonePicked)window.onChronosAlarmTonePicked("+u+","+t+");",null));}
 
     private boolean hasWeatherLocationPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -892,6 +928,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode==REQUEST_ALARM_TONE){if(resultCode==RESULT_OK&&data!=null){Uri uri=data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);String title=null;if(uri!=null)try{Ringtone r=RingtoneManager.getRingtone(this,uri);if(r!=null)title=r.getTitle(this);}catch(Exception ignored){}publishAlarmTone(uri,title);}return;}
         if (requestCode == REQUEST_BIND_WEATHER_WIDGET) {
             if (resultCode == RESULT_OK && pendingWeatherProvider != null) {
                 finishWeatherWidgetBinding(createWeatherWidgetOptions(pendingWeatherProvider));
