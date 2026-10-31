@@ -65,13 +65,13 @@ jobs:
             echo "Chave já persistida no repositório."
           fi
 
-      - name: Compilar APK assinado
-        run: gradle assembleDebug --no-daemon -PAPP_VERSION_CODE="$APP_VERSION_CODE" -PAPP_VERSION_NAME="$APP_VERSION_NAME"
+      - name: Compilar APK release otimizado e assinado
+        run: gradle assembleRelease --no-daemon -PAPP_VERSION_CODE="$APP_VERSION_CODE" -PAPP_VERSION_NAME="$APP_VERSION_NAME"
 
       - name: Preparar APK com nome versionado
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk "dist/chronos-v${APP_VERSION_NAME}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "dist/chronos-v${APP_VERSION_NAME}.apk"
 
       - name: Publicar APK como artefato
         uses: actions/upload-artifact@v4

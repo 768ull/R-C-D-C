@@ -51,7 +51,7 @@
         })();
     </script>
     <title>Chronos App</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+    <!-- O CSS do Leaflet é carregado somente quando a aba Mapa é aberta. -->
     <style>
         :root {
             --bg-color: #eef2f3;
@@ -1591,7 +1591,7 @@
         </nav>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- O JavaScript do Leaflet é carregado sob demanda na aba Mapa. -->
     <script>
         // --- TRAVAS NATIVAS ESTILO ANDROID APP ---
         document.addEventListener('contextmenu', event => event.preventDefault(), false);
@@ -1659,12 +1659,14 @@
             [navClock, navAlarm, navCalendar, navDays, navTimer, navCalc, navCompass, navWeather, navMap].forEach(n => n.classList.remove('active'));
             [tabClockContent, tabAlarmContent, tabCalendarContent, tabDaysContent, tabTimerContent, tabCalcContent, tabCompassContent, tabWeatherContent, tabMapContent].forEach(t => t.classList.remove('active'));
             document.getElementById('dropdown-list').classList.remove('show');
+            startClockUpdates();
         }
 
         navClock.addEventListener('click', () => {
             clearMainTabs();
             navClock.classList.add('active');
             tabClockContent.classList.add('active');
+            startClockUpdates();
         });
 
         navAlarm.addEventListener('click', () => { clearMainTabs(); navAlarm.classList.add('active'); tabAlarmContent.classList.add('active'); loadChronosAlarms(); });
@@ -1716,7 +1718,7 @@
             clearMainTabs();
             navMap.classList.add('active');
             tabMapContent.classList.add('active');
-            initializeGoogleMap();
+            loadLeafletForMap();
         });
 
         const weatherStatus = document.getElementById('weather-status');
@@ -2027,6 +2029,40 @@
         let chronosMap = null;
         let mapSearchMarker = null;
 
+        let leafletLoading = false;
+
+        function loadLeafletForMap() {
+            if (window.L) {
+                initializeOpenMap();
+                return;
+            }
+            if (leafletLoading) return;
+
+            leafletLoading = true;
+            mapStatus.textContent = 'Carregando biblioteca do mapa…';
+
+            if (!document.querySelector('link[data-chronos-leaflet]')) {
+                const stylesheet = document.createElement('link');
+                stylesheet.rel = 'stylesheet';
+                stylesheet.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
+                stylesheet.setAttribute('data-chronos-leaflet', 'true');
+                document.head.appendChild(stylesheet);
+            }
+
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+            script.async = true;
+            script.onload = () => {
+                leafletLoading = false;
+                if (tabMapContent.classList.contains('active')) initializeOpenMap();
+            };
+            script.onerror = () => {
+                leafletLoading = false;
+                mapStatus.textContent = 'Não foi possível carregar a biblioteca do mapa. Verifique sua conexão e tente novamente.';
+            };
+            document.head.appendChild(script);
+        }
+
         function initializeOpenMap() {
             if (!window.L) {
                 mapStatus.textContent = 'Não foi possível carregar a biblioteca do mapa. Verifique a conexão com a internet.';
@@ -2246,6 +2282,8 @@
         let isSoundOn = false;
         let audioCtx = null;
         let lastSecond = -1;
+        let clockAnimationFrameId = null;
+        let clockIntervalId = null;
 
         function createClockMarkings() {
             const existingMarkings = clockFace.querySelectorAll('.marking');
@@ -2343,8 +2381,39 @@
             const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
             digitalDate.textContent = now.toLocaleDateString('pt-BR', options);
 
-            loadChronosAlarms();
-        requestAnimationFrame(updateClock);
+        }
+
+        function stopClockUpdates() {
+            if (clockAnimationFrameId !== null) {
+                cancelAnimationFrame(clockAnimationFrameId);
+                clockAnimationFrameId = null;
+            }
+            if (clockIntervalId !== null) {
+                clearInterval(clockIntervalId);
+                clockIntervalId = null;
+            }
+        }
+
+        function startClockUpdates() {
+            stopClockUpdates();
+            if (document.visibilityState === 'hidden') return;
+
+            updateClock();
+            if (isSweepMode && tabClockContent.classList.contains('active')) {
+                const animateClock = () => {
+                    if (document.visibilityState === 'hidden'
+                            || !isSweepMode
+                            || !tabClockContent.classList.contains('active')) {
+                        startClockUpdates();
+                        return;
+                    }
+                    updateClock();
+                    clockAnimationFrameId = requestAnimationFrame(animateClock);
+                };
+                clockAnimationFrameId = requestAnimationFrame(animateClock);
+            } else {
+                clockIntervalId = window.setInterval(updateClock, 1000);
+            }
         }
 
         function renderCalendar() {
@@ -3057,6 +3126,7 @@
             isSweepMode = !isSweepMode;
             sweepToggle.classList.toggle('active', isSweepMode);
             saveAppPreferences();
+            startClockUpdates();
         });
 
         soundToggle.addEventListener('click', () => {
@@ -3109,12 +3179,14 @@
         });
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') {
+                stopClockUpdates();
                 saveScheduleTasks();
                 saveScheduleDraft();
                 saveAppPreferences();
                 saveTimerEvents();
             } else {
                 syncLiveViews();
+                startClockUpdates();
             }
         });
 
@@ -3126,7 +3198,7 @@
         syncTimerYearInput();
         buildTimerList();
 
-        requestAnimationFrame(updateClock);
+        startClockUpdates();
     </script>
 </body>
 </html>
