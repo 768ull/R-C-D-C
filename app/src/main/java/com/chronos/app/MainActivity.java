@@ -30,6 +30,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
@@ -392,7 +393,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             AppWidgetHostView hostView = weatherWidgetHost.createView(
                     getApplicationContext(), id, info);
             hostView.setFocusable(true);
-        hostView.setVisibility(View.GONE);
+            hostView.setVisibility(View.GONE);
             weatherWidgetView = hostView;
             weatherWidgetId = id;
             rootLayout.addView(hostView, new FrameLayout.LayoutParams(1, 1,
