@@ -1,32 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-
-    <!-- Fundo escuro estilo Chronos -->
-    <path
-        android:fillColor="#0F172A"
-        android:pathData="M0,0h108v108h-108z" />
-
-    <!-- Círculo externo do relógio -->
-    <path
-        android:fillColor="#1E293B"
-        android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
-
-    <!-- Ponteiro de horas -->
-    <path
-        android:fillColor="#F1F5F9"
-        android:pathData="M54,54L54,34A6,6 0,0 1,60 40L57,55Z" />
-
-    <!-- Ponteiro de minutos -->
-    <path
-        android:fillColor="#CBD5E1"
-        android:pathData="M54,54L74,44A4,4 0,0 1,71 50L55,57Z" />
-
-    <!-- Ponto central -->
-    <path
-        android:fillColor="#38BDF8"
-        android:pathData="M54,54m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
-</vector>
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/chronos_launcher"
+    android:gravity="fill" />
