@@ -1684,7 +1684,7 @@
             { id: "independencia", name: "Independência do Brasil", label: "07/09", day: 7, month: 8, type: "fixed" },
             { id: "criancas", name: "Dia das Crianças / Aparecida", label: "12/10", day: 12, month: 9, type: "fixed" },
             { id: "servidor", name: "Dia do Servidor Público", label: "28/10", day: 28, month: 9, type: "fixed" },
-            { id: "halloween", name: "Halloween (Dia das Bruxas)", label: "31/10", day: 31, month: 10, type: "fixed" },
+            { id: "halloween", name: "Halloween (Dia das Bruxas)", label: "31/10", day: 31, month: 9, type: "fixed" },
             { id: "finados", name: "Dia de Finados", label: "02/11", day: 2, month: 10, type: "fixed" },
             { id: "republica", name: "Proclamação da República", label: "15/11", day: 15, month: 10, type: "fixed" },
             { id: "consciencia", name: "Dia da Consciência Negra", label: "20/11", day: 20, month: 10, type: "fixed" },
@@ -2197,6 +2197,20 @@
             if (needsRebuild) buildTimerList();
         }
 
+        // Revalida todas as informações dependentes de data/hora ao voltar do segundo plano
+        // ou quando a janela recebe foco. O relógio principal continua com requestAnimationFrame.
+        function syncLiveViews() {
+            const now = new Date();
+            lastRecordedDateKey = getLocalDateKey(now);
+            renderCalendar();
+
+            if (tabDaysContent.classList.contains('active')) updateCountdowns();
+            if (tabTimerContent.classList.contains('active')) buildTimerList();
+        }
+
+        window.addEventListener('pageshow', syncLiveViews);
+        window.addEventListener('focus', syncLiveViews);
+
         // --- OPERAÇÕES DA CALCULADORA ---
         const calcExprEl = document.getElementById('calc-expr');
         const calcResultEl = document.getElementById('calc-result');
@@ -2364,6 +2378,8 @@
                 saveScheduleDraft();
                 saveAppPreferences();
                 saveTimerEvents();
+            } else {
+                syncLiveViews();
             }
         });
 
