@@ -2,11 +2,6 @@ package com.chronos.app;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.os.Build;
-import android.widget.Toast;
-import java.util.Locale;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -18,6 +13,20 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.graphics.Color;
 import android.view.View;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.appwidget.AppWidgetHost;
+import android.appwidget.AppWidgetHostView;
+import android.appwidget.AppWidgetManager;
+import android.appwidget.AppWidgetProviderInfo;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Process;
+import org.json.JSONObject;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
@@ -30,7 +39,30 @@ import androidx.core.view.WindowInsetsControllerCompat;
  */
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
+    private static final int WEATHER_HOST_ID = 0x4348524F;
+    private static final int REQUEST_BIND_WEATHER_WIDGET = 8120;
+    private static final int REQUEST_CONFIGURE_WEATHER_WIDGET = 8121;
+    private static final int INVALID_WIDGET_ID = AppWidgetManager.INVALID_APPWIDGET_ID;
+    private static final String WEATHER_WIDGET_PREFS = "chronos_weather_widget";
+    private static final String WEATHER_WIDGET_ID_KEY = "widget_id";
+    private static final String[] WEATHER_PROVIDER_PACKAGES = {
+            "com.rlk.weathers", "com.transsion.weather"
+    };
+
     private WebView webView;
+    private FrameLayout rootLayout;
+    private AppWidgetManager appWidgetManager;
+    private AppWidgetHost weatherWidgetHost;
+    private AppWidgetHostView weatherWidgetView;
+    private int weatherWidgetId = INVALID_WIDGET_ID;
+    private int pendingWeatherWidgetId = INVALID_WIDGET_ID;
+    private AppWidgetProviderInfo pendingWeatherProvider;
+    private boolean weatherTabVisible = false;
+    private float weatherWidgetLeft = 0f;
+    private float weatherWidgetTop = 0f;
+    private float weatherWidgetWidth = 0f;
+    private float weatherWidgetHeight = 0f;
+
     private SensorManager sensorManager;
     private Sensor rotationVectorSensor;
     private Sensor accelerometerSensor;
@@ -56,8 +88,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             magneticFieldSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         }
 
+        rootLayout = new FrameLayout(this);
+        rootLayout.setClipChildren(false);
+        rootLayout.setClipToPadding(false);
+        appWidgetManager = AppWidgetManager.getInstance(this);
+        weatherWidgetHost = new AppWidgetHost(this, WEATHER_HOST_ID);
+
         webView = new WebView(this);
-        setContentView(webView);
+        rootLayout.addView(webView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+        setContentView(rootLayout);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -70,7 +111,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // A interface JavaScript só é adicionada depois de ativar JavaScript.
         webView.addJavascriptInterface(new CompassBridge(), "ChronosCompass");
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                restoreWeatherWidgetIfAvailable();
+            }
+        });
         webView.setBackgroundColor(0xFF0F172A);
         webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
         webView.loadUrl("file:///android_asset/index.html");
@@ -169,62 +216,263 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             runOnUiThread(() -> unregisterCompassSensors());
         }
 
-        /**
-         * Abre o aplicativo de clima do fabricante, quando instalado.
-         * Em aparelhos Infinix/Tecno/itel, a primeira opção é o Daily Weather
-         * da Transsion (com.rlk.weathers).
-         */
+        /** Vincula e exibe o widget oficial do Daily Weather dentro do Chronos. */
         @JavascriptInterface
-        public boolean openNativeWeather() {
-            String maker = Build.MANUFACTURER == null
-                    ? "" : Build.MANUFACTURER.toLowerCase(Locale.ROOT);
-
-            String[] transsionPackages = {
-                    "com.rlk.weathers",
-                    "com.transsion.weather"
-            };
-            String[] otherPackages = {
-                    "com.sec.android.daemonapp",
-                    "com.miui.weather2",
-                    "com.coloros.weather2",
-                    "com.vivo.weather",
-                    "com.huawei.android.totemweather",
-                    "com.motorola.timeweatherwidget",
-                    "com.google.android.apps.weather"
-            };
-
-            java.util.ArrayList<String> candidates = new java.util.ArrayList<>();
-            if (maker.contains("infinix") || maker.contains("tecno")
-                    || maker.contains("itel") || maker.contains("transsion")) {
-                candidates.addAll(java.util.Arrays.asList(transsionPackages));
-            }
-            candidates.addAll(java.util.Arrays.asList(otherPackages));
-            candidates.addAll(java.util.Arrays.asList(transsionPackages));
-
-            PackageManager pm = getPackageManager();
-            for (String packageName : candidates) {
-                try {
-                    Intent launchIntent = pm.getLaunchIntentForPackage(packageName);
-                    if (launchIntent != null) {
-                        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        final Intent intentToLaunch = launchIntent;
-                        runOnUiThread(() -> {
-                            try {
-                                startActivity(intentToLaunch);
-                            } catch (Exception e) {
-                                Toast.makeText(MainActivity.this,
-                                        "Não foi possível abrir o aplicativo de clima.",
-                                        Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                        return true;
-                    }
-                } catch (Exception ignored) {
-                    // Continua a procura em outros aplicativos de clima conhecidos.
-                }
-            }
-            return false;
+        public void connectWeatherWidget() {
+            runOnUiThread(() -> beginWeatherWidgetConnection());
         }
+
+        @JavascriptInterface
+        public void setWeatherWidgetBounds(double left, double top, double width, double height) {
+            weatherWidgetLeft = (float) left;
+            weatherWidgetTop = (float) top;
+            weatherWidgetWidth = (float) width;
+            weatherWidgetHeight = (float) height;
+            weatherTabVisible = true;
+            runOnUiThread(() -> layoutWeatherWidget());
+        }
+
+        @JavascriptInterface
+        public void setWeatherTabVisible(boolean visible) {
+            weatherTabVisible = visible;
+            runOnUiThread(() -> {
+                if (weatherWidgetView != null) {
+                    weatherWidgetView.setVisibility(visible ? View.VISIBLE : View.GONE);
+                }
+            });
+        }
+    }
+
+    private SharedPreferences weatherPreferences() {
+        return getSharedPreferences(WEATHER_WIDGET_PREFS, MODE_PRIVATE);
+    }
+
+    private void sendWeatherStatus(String message, boolean connected) {
+        if (webView == null) return;
+        String quoted = JSONObject.quote(message);
+        webView.post(() -> webView.evaluateJavascript(
+                "if (window.onChronosWeatherStatus) window.onChronosWeatherStatus(" +
+                        quoted + "," + connected + ");", null));
+    }
+
+    private List<AppWidgetProviderInfo> getManufacturerWeatherProviders() {
+        List<AppWidgetProviderInfo> providers = new ArrayList<>();
+        for (String packageName : WEATHER_PROVIDER_PACKAGES) {
+            try {
+                List<AppWidgetProviderInfo> found;
+                if (android.os.Build.VERSION.SDK_INT >= 26) {
+                    found = appWidgetManager.getInstalledProvidersForPackage(
+                            packageName, Process.myUserHandle());
+                } else {
+                    found = appWidgetManager.getInstalledProviders();
+                }
+                if (found == null) continue;
+                for (AppWidgetProviderInfo info : found) {
+                    if (info != null && info.provider != null
+                            && packageName.equals(info.provider.getPackageName())) {
+                        providers.add(info);
+                    }
+                }
+            } catch (Exception ignored) {
+                // O pacote pode não fornecer um widget instalável.
+            }
+            if (!providers.isEmpty()) break;
+        }
+        providers.sort(Comparator.comparingLong(info ->
+                Math.max(1, info.minWidth) * (long) Math.max(1, info.minHeight)));
+        return providers;
+    }
+
+    private boolean isManufacturerWeatherProvider(AppWidgetProviderInfo info) {
+        if (info == null || info.provider == null) return false;
+        String pkg = info.provider.getPackageName();
+        for (String expected : WEATHER_PROVIDER_PACKAGES) {
+            if (expected.equals(pkg)) return true;
+        }
+        return false;
+    }
+
+    private Bundle createWeatherWidgetOptions(AppWidgetProviderInfo info) {
+        Bundle options = new Bundle();
+        int minWidth = Math.max(180, info.minWidth);
+        int minHeight = Math.max(180, info.minHeight);
+        options.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, minWidth);
+        options.putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, Math.max(minWidth, 340));
+        options.putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, minHeight);
+        options.putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, Math.max(minHeight, 420));
+        return options;
+    }
+
+    private void beginWeatherWidgetConnection() {
+        if (weatherWidgetView != null) {
+            sendWeatherStatus("O widget oficial do clima já está conectado ao Chronos.", true);
+            layoutWeatherWidget();
+            return;
+        }
+
+        int savedId = weatherPreferences().getInt(WEATHER_WIDGET_ID_KEY, INVALID_WIDGET_ID);
+        if (savedId != INVALID_WIDGET_ID) {
+            AppWidgetProviderInfo savedInfo = appWidgetManager.getAppWidgetInfo(savedId);
+            if (isManufacturerWeatherProvider(savedInfo)) {
+                weatherWidgetId = savedId;
+                attachWeatherWidget(savedId, savedInfo);
+                return;
+            }
+            weatherPreferences().edit().remove(WEATHER_WIDGET_ID_KEY).apply();
+        }
+
+        List<AppWidgetProviderInfo> providers = getManufacturerWeatherProviders();
+        if (providers.isEmpty()) {
+            sendWeatherStatus(
+                    "O Daily Weather não disponibilizou um widget para o Chronos neste aparelho. " +
+                    "Não vou substituir a previsão por dados de outra fonte.",
+                    false);
+            return;
+        }
+
+        pendingWeatherProvider = providers.get(0);
+        pendingWeatherWidgetId = weatherWidgetHost.allocateAppWidgetId();
+        Bundle options = createWeatherWidgetOptions(pendingWeatherProvider);
+
+        try {
+            boolean allowed = appWidgetManager.bindAppWidgetIdIfAllowed(
+                    pendingWeatherWidgetId, pendingWeatherProvider.provider, options);
+            if (allowed) {
+                finishWeatherWidgetBinding(options);
+            } else {
+                Intent bindIntent = new Intent(AppWidgetManager.ACTION_APPWIDGET_BIND);
+                bindIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, pendingWeatherWidgetId);
+                bindIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER,
+                        pendingWeatherProvider.provider);
+                bindIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_OPTIONS, options);
+                sendWeatherStatus("Autorize o Chronos a exibir o widget oficial do clima nesta tela.", false);
+                startActivityForResult(bindIntent, REQUEST_BIND_WEATHER_WIDGET);
+            }
+        } catch (Exception e) {
+            clearPendingWeatherWidget();
+            sendWeatherStatus("Não foi possível vincular o widget oficial do clima.", false);
+        }
+    }
+
+    private void finishWeatherWidgetBinding(Bundle options) {
+        if (pendingWeatherWidgetId == INVALID_WIDGET_ID || pendingWeatherProvider == null) return;
+        if (pendingWeatherProvider.configure != null) {
+            try {
+                weatherWidgetHost.startAppWidgetConfigureActivityForResult(
+                        this, pendingWeatherWidgetId, 0,
+                        REQUEST_CONFIGURE_WEATHER_WIDGET, options);
+                return;
+            } catch (Exception ignored) {
+                // Continua se a configuração for opcional ou indisponível.
+            }
+        }
+        attachWeatherWidget(pendingWeatherWidgetId, pendingWeatherProvider);
+        pendingWeatherWidgetId = INVALID_WIDGET_ID;
+        pendingWeatherProvider = null;
+    }
+
+    private void attachWeatherWidget(int id, AppWidgetProviderInfo info) {
+        if (!isManufacturerWeatherProvider(info) || rootLayout == null) {
+            sendWeatherStatus("O widget encontrado não pertence ao clima do fabricante.", false);
+            return;
+        }
+        if (weatherWidgetView != null) rootLayout.removeView(weatherWidgetView);
+
+        AppWidgetHostView hostView = weatherWidgetHost.createView(this, id, info);
+        hostView.setAppWidget(id, info);
+        hostView.setFocusable(true);
+        hostView.setVisibility(View.GONE);
+        weatherWidgetView = hostView;
+        weatherWidgetId = id;
+        rootLayout.addView(hostView, new FrameLayout.LayoutParams(1, 1,
+                Gravity.TOP | Gravity.LEFT));
+        weatherPreferences().edit().putInt(WEATHER_WIDGET_ID_KEY, id).apply();
+
+        sendWeatherStatus(
+                "Widget oficial do Daily Weather conectado. A previsão mostrada é fornecida pelo serviço de clima do telefone.",
+                true);
+        layoutWeatherWidget();
+    }
+
+    private void restoreWeatherWidgetIfAvailable() {
+        if (weatherWidgetView != null || appWidgetManager == null || weatherWidgetHost == null) return;
+        int savedId = weatherPreferences().getInt(WEATHER_WIDGET_ID_KEY, INVALID_WIDGET_ID);
+        if (savedId == INVALID_WIDGET_ID) return;
+        AppWidgetProviderInfo info = appWidgetManager.getAppWidgetInfo(savedId);
+        if (isManufacturerWeatherProvider(info)) {
+            weatherWidgetId = savedId;
+            attachWeatherWidget(savedId, info);
+        } else {
+            weatherPreferences().edit().remove(WEATHER_WIDGET_ID_KEY).apply();
+        }
+    }
+
+    private void layoutWeatherWidget() {
+        if (weatherWidgetView == null || rootLayout == null || webView == null) return;
+        if (!weatherTabVisible || weatherWidgetWidth <= 0 || weatherWidgetHeight <= 0) {
+            weatherWidgetView.setVisibility(View.GONE);
+            return;
+        }
+        float density = getResources().getDisplayMetrics().density;
+        int left = Math.max(0, Math.round(weatherWidgetLeft * density));
+        int top = Math.max(0, Math.round(weatherWidgetTop * density));
+        int width = Math.max(1, Math.round(weatherWidgetWidth * density));
+        int height = Math.max(1, Math.round(weatherWidgetHeight * density));
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                width, height, Gravity.TOP | Gravity.LEFT);
+        params.leftMargin = left;
+        params.topMargin = top;
+        weatherWidgetView.setLayoutParams(params);
+        weatherWidgetView.setVisibility(View.VISIBLE);
+        weatherWidgetView.bringToFront();
+    }
+
+    private void clearPendingWeatherWidget() {
+        if (pendingWeatherWidgetId != INVALID_WIDGET_ID && weatherWidgetHost != null) {
+            weatherWidgetHost.deleteAppWidgetId(pendingWeatherWidgetId);
+        }
+        pendingWeatherWidgetId = INVALID_WIDGET_ID;
+        pendingWeatherProvider = null;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_BIND_WEATHER_WIDGET) {
+            if (resultCode == RESULT_OK && pendingWeatherProvider != null) {
+                finishWeatherWidgetBinding(createWeatherWidgetOptions(pendingWeatherProvider));
+            } else {
+                clearPendingWeatherWidget();
+                sendWeatherStatus("A autorização do widget oficial foi cancelada.", false);
+            }
+            return;
+        }
+        if (requestCode == REQUEST_CONFIGURE_WEATHER_WIDGET) {
+            if (resultCode == RESULT_OK && pendingWeatherProvider != null) {
+                attachWeatherWidget(pendingWeatherWidgetId, pendingWeatherProvider);
+                pendingWeatherWidgetId = INVALID_WIDGET_ID;
+                pendingWeatherProvider = null;
+            } else {
+                clearPendingWeatherWidget();
+                sendWeatherStatus("A configuração do widget não foi concluída.", false);
+            }
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (weatherWidgetHost != null) {
+            try { weatherWidgetHost.startListening(); } catch (Exception ignored) {}
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        if (weatherWidgetHost != null) {
+            try { weatherWidgetHost.stopListening(); } catch (Exception ignored) {}
+        }
+        super.onStop();
     }
 
     @Override
@@ -307,6 +555,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onDestroy() {
         compassRequested = false;
         unregisterCompassSensors();
+        if (weatherWidgetHost != null) {
+            try { weatherWidgetHost.stopListening(); } catch (Exception ignored) {}
+        }
+        if (weatherWidgetView != null && rootLayout != null) {
+            rootLayout.removeView(weatherWidgetView);
+            weatherWidgetView = null;
+        }
         if (webView != null) {
             webView.destroy();
             webView = null;

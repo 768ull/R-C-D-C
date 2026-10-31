@@ -960,6 +960,17 @@
         }
 
         .weather-symbol svg { width: 48px; height: 48px; fill: currentColor; }
+        .weather-widget-slot {
+            position: relative; width: 100%; min-height: 260px;
+            border: 1px solid var(--clock-border); border-radius: 16px;
+            background: var(--glass-bg); overflow: hidden;
+        }
+        .weather-widget-placeholder {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 12px; min-height: 260px; padding: 24px; color: var(--text-color);
+            opacity: 0.68; font-size: 0.82rem; line-height: 1.45; text-align: center;
+        }
+        .weather-placeholder-icon { font-size: 2.8rem; line-height: 1; }
         .weather-eyebrow { font-size: 0.7rem; font-weight: 800; letter-spacing: 1.4px; opacity: 0.58; }
         .weather-title { font-size: 1.2rem; font-weight: 800; }
         .weather-description { max-width: 290px; font-size: 0.82rem; line-height: 1.5; opacity: 0.68; }
@@ -1368,10 +1379,16 @@
                         </svg>
                     </div>
                     <div class="weather-eyebrow">CLIMA DO SEU TELEFONE</div>
-                    <div class="weather-title">Aplicativo nativo de clima</div>
-                    <p class="weather-description">Abra o aplicativo de clima original do seu Android. A previsão, a localização e as atualizações continuam sendo fornecidas pelo aplicativo da fabricante.</p>
-                    <button class="weather-open-button" id="weather-open-button">Abrir clima do telefone</button>
-                    <div class="weather-status" id="weather-status">O Chronos vai procurar o aplicativo de clima instalado no aparelho.</div>
+                    <div class="weather-title">Previsão oficial do sistema</div>
+                    <p class="weather-description">O Chronos vai exibir aqui o widget oficial do Daily Weather da Transsion. A previsão, a localização e a atualização são fornecidas pelo próprio serviço de clima do telefone.</p>
+                    <div class="weather-widget-slot" id="weather-widget-slot">
+                        <div class="weather-widget-placeholder" id="weather-widget-placeholder">
+                            <span class="weather-placeholder-icon">☀</span>
+                            <span>O widget oficial do clima aparecerá aqui depois de conectado.</span>
+                        </div>
+                    </div>
+                    <button class="weather-open-button" id="weather-connect-button">Conectar clima do telefone</button>
+                    <div class="weather-status" id="weather-status">O Chronos vai vincular o widget oficial do sistema. O Android pedirá sua autorização.</div>
                 </div>
             </div>
         </div>
@@ -1485,6 +1502,9 @@
 
         function clearMainTabs() {
             stopCompassSensor();
+            if (window.ChronosCompass && typeof window.ChronosCompass.setWeatherTabVisible === 'function') {
+                window.ChronosCompass.setWeatherTabVisible(false);
+            }
 
             [navClock, navCalendar, navDays, navTimer, navCalc, navCompass, navWeather].forEach(n => n.classList.remove('active'));
             [tabClockContent, tabCalendarContent, tabDaysContent, tabTimerContent, tabCalcContent, tabCompassContent, tabWeatherContent].forEach(t => t.classList.remove('active'));
@@ -1537,20 +1557,42 @@
             clearMainTabs();
             navWeather.classList.add('active');
             tabWeatherContent.classList.add('active');
+            const bridge = window.ChronosCompass;
+            if (bridge && typeof bridge.setWeatherTabVisible === 'function') bridge.setWeatherTabVisible(true);
+            window.setTimeout(positionWeatherWidget, 100);
         });
 
         const weatherStatus = document.getElementById('weather-status');
-        document.getElementById('weather-open-button').addEventListener('click', () => {
+        const weatherWidgetSlot = document.getElementById('weather-widget-slot');
+        const weatherWidgetPlaceholder = document.getElementById('weather-widget-placeholder');
+        const weatherConnectButton = document.getElementById('weather-connect-button');
+
+        function positionWeatherWidget() {
             const bridge = window.ChronosCompass;
-            if (!bridge || typeof bridge.openNativeWeather !== 'function') {
-                weatherStatus.textContent = 'A integração com o Android não está disponível nesta versão.';
+            if (!bridge || typeof bridge.setWeatherWidgetBounds !== 'function') return;
+            const rect = weatherWidgetSlot.getBoundingClientRect();
+            bridge.setWeatherWidgetBounds(rect.left, rect.top, rect.width, rect.height);
+        }
+
+        window.onChronosWeatherStatus = function(message, connected) {
+            weatherStatus.textContent = message;
+            weatherWidgetPlaceholder.style.display = connected ? 'none' : 'flex';
+            weatherConnectButton.textContent = connected ? 'Widget oficial conectado' : 'Conectar clima do telefone';
+            if (connected) window.setTimeout(positionWeatherWidget, 80);
+        };
+
+        weatherConnectButton.addEventListener('click', () => {
+            const bridge = window.ChronosCompass;
+            if (!bridge || typeof bridge.connectWeatherWidget !== 'function') {
+                weatherStatus.textContent = 'A integração nativa não está disponível nesta versão do Chronos.';
                 return;
             }
-            const opened = bridge.openNativeWeather();
-            weatherStatus.textContent = opened
-                ? 'Abrindo o aplicativo de clima do fabricante…'
-                : 'Não encontrei um aplicativo nativo de clima instalado. Verifique se o app Clima ou Daily Weather está habilitado no telefone.';
+            weatherStatus.textContent = 'Procurando o widget oficial de clima do fabricante…';
+            bridge.connectWeatherWidget();
         });
+
+        window.addEventListener('resize', positionWeatherWidget);
+        window.addEventListener('scroll', positionWeatherWidget, true);
 
         // Navegação por gesto: deslize o conteúdo para a esquerda/direita para trocar de aba.
         const chronosTabs = [
