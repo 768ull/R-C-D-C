@@ -1431,6 +1431,7 @@
                             placeholder="Cidade, estado ou país" autocomplete="off" />
                         <button class="weather-action-button" id="weather-search-button">Buscar</button>
                     </div>
+                    <button class="weather-action-button" id="weather-location-button" type="button">Usar minha localização</button>
                     <div id="weather-city-results" class="weather-city-results" hidden></div>
                     <div id="weather-current-panel" class="weather-current-panel">
                         <div class="weather-condition-icon">🌤️</div>
@@ -1658,8 +1659,31 @@
         const weatherForecastSection = document.getElementById('weather-forecast-section');
         const weatherForecastList = document.getElementById('weather-forecast-list');
         const weatherRefreshButton = document.getElementById('weather-refresh-button');
+        const weatherLocationButton = document.getElementById('weather-location-button');
         const WEATHER_LOCATION_KEY = 'chronos-weather-location';
+        const WEATHER_CACHE_KEY = 'chronos-weather-last-forecast';
         let selectedWeatherLocation = null;
+
+        function getCachedWeather(location) {
+            if (!location) return null;
+            try {
+                const cached = JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY) || 'null');
+                if (!cached || !cached.data || !Number.isFinite(Number(cached.latitude))
+                        || !Number.isFinite(Number(cached.longitude))) return null;
+                const samePlace = Math.abs(Number(cached.latitude) - Number(location.latitude)) < 0.0001
+                    && Math.abs(Number(cached.longitude) - Number(location.longitude)) < 0.0001;
+                return samePlace ? cached : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function formatWeatherTimestamp(timestamp) {
+            const date = new Date(Number(timestamp));
+            return Number.isFinite(date.getTime())
+                ? date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+                : 'horário desconhecido';
+        }
 
         function setWeatherStatus(message) {
             weatherStatus.textContent = message;
@@ -1691,7 +1715,14 @@
             selectedWeatherLocation = location;
             weatherCityResults.hidden = true;
             weatherRefreshButton.hidden = false;
-            setWeatherStatus('Carregando previsão para ' + location.name + '…');
+            const cached = getCachedWeather(location);
+            if (cached) {
+                renderWeatherForecast(cached.data, cached.savedAt, true);
+                setWeatherStatus('Previsão salva no aparelho · última atualização: '
+                    + formatWeatherTimestamp(cached.savedAt) + '. Atualizando…');
+            } else {
+                setWeatherStatus('Carregando previsão para ' + location.name + '…');
+            }
             bridge.fetchWeather(
                 Number(location.latitude),
                 Number(location.longitude),
@@ -1719,6 +1750,24 @@
                 console.warn('Não foi possível restaurar a cidade do clima:', e);
             }
         }
+
+        window.onChronosWeatherLocation = function(latitude, longitude) {
+            const location = {
+                name: 'Minha localização',
+                admin1: '',
+                country: '',
+                latitude: Number(latitude),
+                longitude: Number(longitude)
+            };
+            if (!Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
+                setWeatherStatus('O aparelho retornou uma localização inválida.');
+                return;
+            }
+            selectedWeatherLocation = location;
+            weatherCityInput.value = 'Minha localização';
+            try { localStorage.setItem(WEATHER_LOCATION_KEY, JSON.stringify(location)); } catch (e) {}
+            loadWeatherForLocation(location);
+        };
 
         window.onChronosWeatherCities = function(cities, error) {
             weatherCityResults.innerHTML = '';
@@ -1784,7 +1833,7 @@
             return Number.isFinite(number) ? Math.round(number) : '—';
         }
 
-        function renderWeatherForecast(data) {
+        function renderWeatherForecast(data, savedAt, fromCache) {
             if (!data || !data.current || !data.daily) {
                 setWeatherStatus('O serviço não retornou dados meteorológicos válidos.');
                 return;
@@ -1845,18 +1894,55 @@
                 weatherForecastList.appendChild(row);
             }
             weatherForecastSection.hidden = false;
-            setWeatherStatus('Previsão atualizada. Consulte novamente quando quiser.');
+            if (fromCache) {
+                setWeatherStatus('Previsão salva no aparelho · última atualização: '
+                    + formatWeatherTimestamp(savedAt) + '.');
+            } else {
+                setWeatherStatus('Previsão atualizada em ' + formatWeatherTimestamp(savedAt)
+                    + '. Consulte novamente quando quiser.');
+            }
         }
 
         window.onChronosWeatherForecast = function(data, error) {
             if (error) {
-                setWeatherStatus(error);
+                const cached = getCachedWeather(selectedWeatherLocation);
+                if (cached) {
+                    setWeatherStatus('Sem conexão. Exibindo a última previsão salva: '
+                        + formatWeatherTimestamp(cached.savedAt) + '.');
+                } else {
+                    setWeatherStatus(error);
+                }
                 return;
             }
-            renderWeatherForecast(data);
+            if (!data || !data.current || !data.daily) {
+                setWeatherStatus('O serviço não retornou dados meteorológicos válidos.');
+                return;
+            }
+            if (selectedWeatherLocation) {
+                try {
+                    localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({
+                        latitude: Number(selectedWeatherLocation.latitude),
+                        longitude: Number(selectedWeatherLocation.longitude),
+                        savedAt: Date.now(),
+                        data: data
+                    }));
+                } catch (e) {
+                    console.warn('Não foi possível salvar a última previsão:', e);
+                }
+            }
+            renderWeatherForecast(data, Date.now(), false);
         };
 
         weatherSearchButton.addEventListener('click', searchWeatherCity);
+        weatherLocationButton.addEventListener('click', () => {
+            const bridge = window.ChronosCompass;
+            if (!bridge || typeof bridge.requestWeatherLocation !== 'function') {
+                setWeatherStatus('A localização automática não está disponível nesta versão.');
+                return;
+            }
+            setWeatherStatus('Solicitando localização do aparelho…');
+            bridge.requestWeatherLocation();
+        });
         weatherCityInput.addEventListener('keydown', event => {
             if (event.key === 'Enter') {
                 event.preventDefault();
