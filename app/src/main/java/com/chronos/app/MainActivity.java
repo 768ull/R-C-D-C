@@ -80,6 +80,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private final ExecutorService mapSearchExecutor = Executors.newSingleThreadExecutor();
     private volatile long lastMapSearchTimeMs = 0L;
 
+    // O WebView pode precisar de um novo ciclo de layout/desenho após voltar
+    // do seletor de apps. Reaplica o layout depois que a janela recupera o foco.
+    private final Runnable webViewRefreshRunnable = () -> {
+        WebView current = webView;
+        if (current == null || !current.isAttachedToWindow()) return;
+        current.requestLayout();
+        current.invalidate();
+        current.postInvalidateOnAnimation();
+        current.evaluateJavascript(
+                "(function(){if(document.readyState==='complete'){"
+                        + "window.dispatchEvent(new Event('resize'));}})();", null);
+    };
+
     private SensorManager sensorManager;
     private Sensor rotationVectorSensor;
     private Sensor accelerometerSensor;
@@ -106,6 +119,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         rootLayout = new FrameLayout(this);
+        rootLayout.setBackgroundColor(getColor(R.color.window_background));
         rootLayout.setClipChildren(false);
         rootLayout.setClipToPadding(false);
         // Widgets de terceiros devem ser inflados com ApplicationContext.
@@ -141,7 +155,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 restoreWeatherWidgetIfAvailable();
             }
         });
-        webView.setBackgroundColor(0xFF0F172A);
+        // Usa a mesma cor da janela e do contêiner nativo para que a superfície
+        // não revele uma cor diferente enquanto o WebView recompõe a página.
+        webView.setBackgroundColor(getColor(R.color.window_background));
         webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
         webView.loadUrl("file:///android_asset/index.html");
     }
@@ -168,6 +184,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         controller.setSystemBarsBehavior(
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
         controller.hide(WindowInsetsCompat.Type.systemBars());
+    }
+
+    private void scheduleWebViewRefreshAfterResume() {
+        if (webView == null) return;
+        mainHandler.removeCallbacks(webViewRefreshRunnable);
+        // Dois ciclos cobrem tanto a retomada da superfície quanto o layout
+        // final depois que o Android termina a transição entre aplicativos.
+        mainHandler.postDelayed(webViewRefreshRunnable, 120L);
+        mainHandler.postDelayed(webViewRefreshRunnable, 420L);
     }
 
     private boolean hasCompassSensor() {
@@ -684,7 +709,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        if (hasFocus) enableImmersiveFullscreen();
+        if (hasFocus) {
+            enableImmersiveFullscreen();
+            scheduleWebViewRefreshAfterResume();
+        }
     }
 
     @Override
@@ -697,7 +725,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
-        if (webView != null) webView.onResume();
+        if (webView != null) {
+            webView.onResume();
+            webView.resumeTimers();
+            scheduleWebViewRefreshAfterResume();
+        }
         if (compassRequested) registerCompassSensors();
     }
 
