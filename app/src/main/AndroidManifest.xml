@@ -6,7 +6,7 @@
         <package android:name="com.rlk.weathers" />
         <package android:name="com.transsion.weather" />
     </queries>
-    <!-- A bússola usa sensores magnéticos; o Chronos incorpora o widget oficial do clima. -->
+    <!-- A previsão do tempo é consultada pelo Chronos e não depende de widgets do fabricante. -->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
