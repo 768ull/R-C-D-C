@@ -1347,12 +1347,28 @@
         document.addEventListener('gesturestart', event => event.preventDefault(), false);
 
 
-        // --- SISTEMA DE ESCOPO GLOBAL DO CALENDÁRIO ---
-        let displayedDate = new Date(); 
-        let activeHolidayHighlight = null; 
-        
-        // Estrutura de persistência offline para monitorar a virada dos dias
-        let lastRecordedDay = new Date().getDate();
+        // --- SISTEMA DE DATA LOCAL E CONTAGEM EM TEMPO REAL ---
+        // Compara dias civis (ano/mês/dia) e não blocos de 24 horas.
+        // Isso evita diferenças erradas perto da meia-noite e em mudanças de horário de verão.
+        function getLocalDateKey(date) {
+            return date.getFullYear() + '-' +
+                String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                String(date.getDate()).padStart(2, '0');
+        }
+
+        function getLocalCalendarDayNumber(date) {
+            return Math.floor(Date.UTC(
+                date.getFullYear(), date.getMonth(), date.getDate()
+            ) / 86400000);
+        }
+
+        function getCalendarDaysBetween(fromDate, toDate) {
+            return getLocalCalendarDayNumber(toDate) - getLocalCalendarDayNumber(fromDate);
+        }
+
+        let displayedDate = new Date();
+        let activeHolidayHighlight = null;
+        let lastRecordedDateKey = getLocalDateKey(new Date());
 
         // --- NAVEGAÇÃO DE ABAS PRINCIPAIS ---
         const navClock = document.getElementById('nav-clock');
@@ -1559,21 +1575,14 @@
             const minutes = now.getMinutes();
             const seconds = now.getSeconds();
             const milliseconds = now.getMilliseconds();
-            const currentDay = now.getDate();
+            const currentDateKey = getLocalDateKey(now);
 
-
-            // CONEXÃO OFFLINE CONTÍNUA: Monitora a virada dos dias direto no celular
-            // Quando bate meia-noite no aparelho, as folhas mudam de forma 100% autônoma
-            if (currentDay !== lastRecordedDay) {
-                lastRecordedDay = currentDay;
-                displayedDate = new Date(); // Sincroniza a folha principal do calendário para o novo mês corrente
+            // Detecta virada de dia/mês/ano pelo calendário local do aparelho.
+            if (currentDateKey !== lastRecordedDateKey) {
+                lastRecordedDateKey = currentDateKey;
                 renderCalendar();
-                if (tabDaysContent.classList.contains('active')) {
-                    updateCountdowns();
-                }
-                if (tabTimerContent.classList.contains('active')) {
-                    buildTimerList();
-                }
+                if (tabDaysContent.classList.contains('active')) updateCountdowns();
+                if (tabTimerContent.classList.contains('active')) buildTimerList();
             }
 
             let secondDeg = isSweepMode ? (seconds * 6) + (milliseconds * 0.006) : seconds * 6;
@@ -1588,12 +1597,9 @@
             if (seconds !== lastSecond) {
                 playTickSound(seconds % 2 === 0);
                 lastSecond = seconds;
-                if (tabDaysContent.classList.contains('active')) {
-                    updateCountdowns();
-                }
-                if (tabTimerContent.classList.contains('active')) {
-                    updateTimerDisplays();
-                }
+                // A aba Dias mostra dias de calendário e só muda na virada do dia.
+                // A aba Cronômetro mantém horas/minutos/segundos atualizados a cada segundo.
+                if (tabTimerContent.classList.contains('active')) updateTimerDisplays();
             }
 
             const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -1914,7 +1920,7 @@
             for (let i = 1; i <= 5; i++) {
                 const targetYear = currentYear + i;
                 const targetDate = new Date(targetYear, 0, 1);
-                const diffDays = Math.ceil((targetDate - now) / (1000 * 60 * 60 * 24));
+                const diffDays = getCalendarDaysBetween(now, targetDate);
                 listYears.appendChild(createCard(`Ano Novo ${targetYear}`, `Entrada em 01/01/${targetYear}`, diffDays));
             }
 
@@ -1922,15 +1928,22 @@
             const computedHolidays = holidayTemplate.map(h => {
                 let holidayDate = getHolidayDate(h, currentYear);
 
-                if (holidayDate < now) holidayDate = getHolidayDate(h, currentYear + 1);
-                const diffDays = Math.ceil((holidayDate - now) / (1000 * 60 * 60 * 24));
-                return { name: h.name, dateStr: holidayDate.toLocaleDateString('pt-BR'), daysLeft: diffDays };
+                // O evento de hoje continua sendo "Hoje" até a próxima meia-noite.
+                if (getCalendarDaysBetween(now, holidayDate) < 0) {
+                    holidayDate = getHolidayDate(h, currentYear + 1);
+                }
+                const diffDays = getCalendarDaysBetween(now, holidayDate);
+                return {
+                    name: h.name,
+                    dateStr: holidayDate.toLocaleDateString('pt-BR'),
+                    daysLeft: diffDays
+                };
             });
 
             computedHolidays.sort((a, b) => a.daysLeft - b.daysLeft);
-            computedHolidays.forEach(h => {
-                listHolidays.appendChild(createCard(h.name, h.dateStr, h.daysLeft));
-            });
+            computedHolidays.forEach(h => listHolidays.appendChild(
+                createCard(h.name, h.dateStr, h.daysLeft)
+            ));
         }
 
         function createCard(title, subtitle, days) {
@@ -1943,8 +1956,8 @@
                 </div>
 
                 <div class="card-counter">
-                    <span class="counter-days">${days}</span>
-                    <div class="counter-label">${days === 1 ? 'Dia' : 'Dias'}</div>
+                    <span class="counter-days">${days === 0 ? 'Hoje!' : days}</span>
+                    <div class="counter-label">${days === 0 ? 'é hoje' : (days === 1 ? 'Dia' : 'Dias')}</div>
                 </div>
             `;
             return card;
@@ -2066,7 +2079,8 @@
             listEl.innerHTML = '';
             timerCardRefs = [];
 
-            const now = Date.now();
+            const nowDate = new Date();
+            const now = nowDate.getTime();
             const targets = [];
 
             // Todos os feriados e festas do ano selecionado (datas móveis via Gauss)
@@ -2087,9 +2101,16 @@
             let nextAssigned = false;
 
             targets.forEach(t => {
-                const start = new Date(t.date.getFullYear(), t.date.getMonth(), t.date.getDate()).getTime();
-                const end = start + 86400000;
-                const state = now < start ? 'future' : (now < end ? 'today' : 'past');
+                const eventStartDate = new Date(
+                    t.date.getFullYear(), t.date.getMonth(), t.date.getDate()
+                );
+                const start = eventStartDate.getTime();
+                // Próxima meia-noite local, respeitando dias de 23/25 horas em mudanças de fuso.
+                const end = new Date(
+                    t.date.getFullYear(), t.date.getMonth(), t.date.getDate() + 1
+                ).getTime();
+                const calendarDaysLeft = getCalendarDaysBetween(nowDate, eventStartDate);
+                const state = calendarDaysLeft > 0 ? 'future' : (calendarDaysLeft === 0 ? 'today' : 'past');
                 const isNext = state === 'future' && !nextAssigned;
                 if (state === 'future') nextAssigned = true;
 
@@ -2131,7 +2152,15 @@
                 }
 
                 listEl.appendChild(card);
-                timerCardRefs.push({ state: state, targetMs: start, endMs: end, lastDays: null, bigEl: bigEl, timeEl: timeEl, labelEl: labelEl });
+                timerCardRefs.push({
+                    state: state,
+                    targetMs: start,
+                    endMs: end,
+                    lastDays: null,
+                    bigEl: bigEl,
+                    timeEl: timeEl,
+                    labelEl: labelEl
+                });
             });
 
             updateTimerDisplays();
@@ -2140,7 +2169,8 @@
         // Atualização em tempo real: chamada a cada segundo pelo relógio principal.
         // Atualiza apenas os nós de texto, preservando a posição de rolagem da lista.
         function updateTimerDisplays() {
-            const now = Date.now();
+            const nowDate = new Date();
+            const now = nowDate.getTime();
             let needsRebuild = false;
 
             timerCardRefs.forEach(ref => {
@@ -2148,9 +2178,9 @@
                 if (ref.state === 'today' && now >= ref.endMs) { needsRebuild = true; return; }
                 if (ref.state !== 'future') return;
 
-                const diff = ref.targetMs - now;
-                const days = Math.floor(diff / 86400000);
-                const hours = Math.floor(diff / 3600000) % 24;
+                const diff = Math.max(0, ref.targetMs - now);
+                const days = getCalendarDaysBetween(nowDate, new Date(ref.targetMs));
+                const totalHours = Math.floor(diff / 3600000);
                 const minutes = Math.floor(diff / 60000) % 60;
                 const seconds = Math.floor(diff / 1000) % 60;
 
@@ -2159,7 +2189,9 @@
                     ref.bigEl.textContent = days === 1 ? '1 dia' : `${days} dias`;
                 }
 
-                ref.timeEl.textContent = `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`;
+                // Horas totais até à data do evento; não se limita a 00-23.
+                ref.timeEl.textContent = `${pad2(totalHours)}:${pad2(minutes)}:${pad2(seconds)}`;
+                ref.labelEl.textContent = 'tempo total restante';
             });
 
             if (needsRebuild) buildTimerList();
