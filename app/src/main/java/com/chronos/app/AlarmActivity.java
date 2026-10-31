@@ -1,6 +1,7 @@
 package com.chronos.app;
 import android.app.Activity;
-import android.media.Ringtone;
+import android.media.MediaPlayer;
+import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.*;
@@ -17,7 +18,7 @@ import java.util.Locale;
 
 /** Tela nativa de alarme, compatível com tela bloqueada. */
 public final class AlarmActivity extends Activity {
- private Ringtone ringtone; private Vibrator vibrator; private long id; private String label,tone; private boolean vibrate;
+ private MediaPlayer player; private Vibrator vibrator; private boolean fallbackTone=false; private long id; private String label,tone; private boolean vibrate;
  @Override protected void onCreate(Bundle state){
   super.onCreate(state);
   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON|WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED|WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON|WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
@@ -32,8 +33,27 @@ public final class AlarmActivity extends Activity {
   setContentView(root);playTone();if(vibrate)startVibration();
  }
  private LinearLayout.LayoutParams lp(){return new LinearLayout.LayoutParams(-1,-2);}
- private void playTone(){try{Uri u=tone==null||tone.isEmpty()?RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM):Uri.parse(tone);if(u==null)u=RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);ringtone=RingtoneManager.getRingtone(this,u);if(ringtone!=null){ringtone.setStreamType(android.media.AudioManager.STREAM_ALARM);if(Build.VERSION.SDK_INT>=28)ringtone.setLooping(true);ringtone.play();}}catch(Exception ignored){}}
+ private void playTone(){
+  Uri uri=tone==null||tone.isEmpty()?RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM):Uri.parse(tone);
+  if(uri==null)uri=RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+  startPlayer(uri,false);
+ }
+ private void startPlayer(Uri uri,boolean fallback){
+  try{
+   if(player!=null){try{player.stop();}catch(Exception ignored){}player.release();player=null;}
+   player=new MediaPlayer();
+   if(Build.VERSION.SDK_INT>=21)player.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
+   else player.setAudioStreamType(android.media.AudioManager.STREAM_ALARM);
+   player.setLooping(true);
+   player.setOnPreparedListener(MediaPlayer::start);
+   player.setOnErrorListener((mp,what,extra)->{if(!fallback){startPlayer(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),true);return true;}return false;});
+   player.setDataSource(this,uri);
+   player.prepareAsync();
+  }catch(Exception e){
+   if(!fallback)startPlayer(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),true);
+  }
+ }
  private void startVibration(){try{vibrator=(Vibrator)getSystemService(Context.VIBRATOR_SERVICE);if(vibrator!=null&&vibrator.hasVibrator()){long[] p={0,700,500,700,500};if(Build.VERSION.SDK_INT>=26)vibrator.vibrate(VibrationEffect.createWaveform(p,0));else vibrator.vibrate(p,0);}}catch(Exception ignored){}}
- private void stopAndFinish(){NotificationManagerCompat.from(this).cancel(AlarmReceiver.code(id));if(ringtone!=null){try{ringtone.stop();}catch(Exception ignored){}}if(vibrator!=null)vibrator.cancel();finish();}
- @Override protected void onDestroy(){if(ringtone!=null)try{ringtone.stop();}catch(Exception ignored){}if(vibrator!=null)vibrator.cancel();super.onDestroy();}
+ private void stopAndFinish(){NotificationManagerCompat.from(this).cancel(AlarmReceiver.code(id));if(player!=null){try{if(player.isPlaying())player.stop();}catch(Exception ignored){}player.release();player=null;}if(vibrator!=null)vibrator.cancel();finish();}
+ @Override protected void onDestroy(){if(player!=null){try{if(player.isPlaying())player.stop();}catch(Exception ignored){}player.release();player=null;}if(vibrator!=null)vibrator.cancel();super.onDestroy();}
 }
