@@ -21,6 +21,11 @@ import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.Manifest;
 import android.content.SharedPreferences;
 import android.os.Process;
 import android.os.Handler;
@@ -43,6 +48,8 @@ import java.util.List;
 import java.util.Locale;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -56,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private static final int WEATHER_HOST_ID = 0x4348524F;
     private static final int REQUEST_BIND_WEATHER_WIDGET = 8120;
     private static final int REQUEST_CONFIGURE_WEATHER_WIDGET = 8121;
+    private static final int REQUEST_WEATHER_LOCATION_PERMISSION = 8122;
     private static final int INVALID_WIDGET_ID = AppWidgetManager.INVALID_APPWIDGET_ID;
     private static final String WEATHER_WIDGET_PREFS = "chronos_weather_widget";
     private static final String WEATHER_WIDGET_ID_KEY = "widget_id";
@@ -80,6 +88,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private final ExecutorService mapSearchExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService weatherExecutor = Executors.newSingleThreadExecutor();
     private volatile long lastMapSearchTimeMs = 0L;
+    private LocationManager weatherLocationManager;
+    private LocationListener weatherLocationListener;
+    private Location weatherFallbackLocation;
+    private final Runnable weatherLocationTimeout = () -> finishWeatherLocationRequest(weatherFallbackLocation);
 
     // O WebView pode precisar de um novo ciclo de layout/desenho após voltar
     // do seletor de apps. Reaplica o layout depois que a janela recupera o foco.
@@ -354,6 +366,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
         @JavascriptInterface
+        public void requestWeatherLocation() {
+            runOnUiThread(() -> beginWeatherLocationRequest());
+        }
+
+        @JavascriptInterface
         public void searchWeatherCity(String query) {
             final String safeQuery = query == null ? "" : query.trim();
             if (safeQuery.isEmpty()) {
@@ -437,6 +454,132 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+
+    private boolean hasWeatherLocationPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void beginWeatherLocationRequest() {
+        if (!hasWeatherLocationPermission()) {
+            ActivityCompat.requestPermissions(this, new String[] {
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+            }, REQUEST_WEATHER_LOCATION_PERMISSION);
+            sendWeatherStatus("Autorize a localização para buscar o clima da sua região.", false);
+            return;
+        }
+
+        weatherLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if (weatherLocationManager == null) {
+            sendWeatherStatus("O serviço de localização não está disponível neste aparelho.", false);
+            return;
+        }
+
+        weatherFallbackLocation = null;
+        try {
+            long now = System.currentTimeMillis();
+            for (String provider : weatherLocationManager.getProviders(true)) {
+                try {
+                    Location known = weatherLocationManager.getLastKnownLocation(provider);
+                    if (known == null) continue;
+                    if (weatherFallbackLocation == null
+                            || known.getTime() > weatherFallbackLocation.getTime()) {
+                        weatherFallbackLocation = known;
+                    }
+                } catch (SecurityException ignored) {
+                    // Um provedor pode não estar coberto pela permissão concedida.
+                }
+            }
+            if (weatherFallbackLocation != null
+                    && now - weatherFallbackLocation.getTime() <= 120000L) {
+                sendWeatherLocation(weatherFallbackLocation);
+                return;
+            }
+
+            weatherLocationListener = new LocationListener() {
+                @Override
+                public void onLocationChanged(Location location) {
+                    finishWeatherLocationRequest(location);
+                }
+                @Override public void onProviderEnabled(String provider) {}
+                @Override public void onProviderDisabled(String provider) {}
+                @Override public void onStatusChanged(String provider, int status, Bundle extras) {}
+            };
+
+            int requestedProviders = 0;
+            for (String provider : weatherLocationManager.getProviders(true)) {
+                try {
+                    weatherLocationManager.requestSingleUpdate(
+                            provider, weatherLocationListener, Looper.getMainLooper());
+                    requestedProviders++;
+                } catch (SecurityException | IllegalArgumentException ignored) {
+                    // Tenta outro provedor disponível.
+                }
+            }
+            if (requestedProviders == 0) {
+                finishWeatherLocationRequest(weatherFallbackLocation);
+                return;
+            }
+            mainHandler.removeCallbacks(weatherLocationTimeout);
+            mainHandler.postDelayed(weatherLocationTimeout, 15000L);
+            sendWeatherStatus("Obtendo sua localização…", false);
+        } catch (SecurityException e) {
+            sendWeatherStatus("A permissão de localização não foi concedida.", false);
+        } catch (Exception e) {
+            finishWeatherLocationRequest(weatherFallbackLocation);
+        }
+    }
+
+    private void finishWeatherLocationRequest(Location location) {
+        mainHandler.removeCallbacks(weatherLocationTimeout);
+        if (weatherLocationManager != null && weatherLocationListener != null) {
+            try { weatherLocationManager.removeUpdates(weatherLocationListener); }
+            catch (SecurityException ignored) {}
+        }
+        weatherLocationListener = null;
+        if (location == null && weatherFallbackLocation != null
+                && System.currentTimeMillis() - weatherFallbackLocation.getTime() <= 21600000L) {
+            location = weatherFallbackLocation;
+        }
+        weatherFallbackLocation = null;
+        if (location == null) {
+            sendWeatherStatus(
+                    "Não foi possível obter sua localização. Ative o GPS ou pesquise uma cidade.",
+                    false);
+            return;
+        }
+        sendWeatherLocation(location);
+    }
+
+    private void sendWeatherLocation(Location location) {
+        if (location == null || webView == null || isFinishing() || isDestroyed()) return;
+        String latitude = String.format(Locale.US, "%.6f", location.getLatitude());
+        String longitude = String.format(Locale.US, "%.6f", location.getLongitude());
+        webView.post(() -> {
+            WebView current = webView;
+            if (current == null) return;
+            current.evaluateJavascript(
+                    "if(window.onChronosWeatherLocation)window.onChronosWeatherLocation("
+                            + latitude + "," + longitude + ");", null);
+        });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != REQUEST_WEATHER_LOCATION_PERMISSION) return;
+        if (hasWeatherLocationPermission()) {
+            beginWeatherLocationRequest();
+        } else {
+            sendWeatherStatus(
+                    "Permissão negada. Você ainda pode pesquisar uma cidade manualmente.",
+                    false);
+        }
+    }
 
     private JSONObject requestWeatherJson(String address) throws Exception {
         HttpURLConnection connection = null;
@@ -873,6 +1016,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onDestroy() {
         compassRequested = false;
         unregisterCompassSensors();
+        mainHandler.removeCallbacks(weatherLocationTimeout);
+        if (weatherLocationManager != null && weatherLocationListener != null) {
+            try { weatherLocationManager.removeUpdates(weatherLocationListener); }
+            catch (SecurityException ignored) {}
+            weatherLocationListener = null;
+        }
         if (weatherWidgetHost != null) {
             try { weatherWidgetHost.stopListening(); } catch (Exception ignored) {}
         }
