@@ -3256,7 +3256,7 @@
         function saveAppPreferences() {
             try {
                 localStorage.setItem(APP_PREFERENCES_KEY, JSON.stringify({
-                    theme: document.body.getAttribute('data-theme') || 'light',
+                    theme: document.documentElement.getAttribute('data-theme') || 'light',
                     sweep: isSweepMode,
                     sound: isSoundOn,
                     secondHandColor: secondHandColor
@@ -3285,17 +3285,29 @@
         }
 
         // --- ALTERNADOR DE TEMAS (MANUAL) ---
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = document.body.getAttribute('data-theme');
-            if (currentTheme === 'dark') {
-                document.body.setAttribute('data-theme', 'light');
-                themeIcon.innerHTML = '<path d="M12,18C11.11,18 10.26,17.8 9.5,17.45C11.56,16.5 13,14.42 13,12C13,9.58 11.56,7.5 9.5,6.55C10.26,6.2 11.11,6 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z" />';
-            } else {
-                document.body.setAttribute('data-theme', 'dark');
+        function applyAppTheme(theme, persist) {
+            const nextTheme = theme === 'dark' ? 'dark' : 'light';
+            const root = document.documentElement;
 
-                themeIcon.innerHTML = '<path d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,3.5A8.5,8.5 0 1,0 20.5,12A8.5,8.5 0 0,0 12,3.5Z" />';
-            }
-            saveAppPreferences();
+            // Mantém a raiz e o body sincronizados: o CSS global usa
+            // variáveis no elemento raiz e os componentes usam o tema do body.
+            root.setAttribute('data-theme', nextTheme);
+            document.body.setAttribute('data-theme', nextTheme);
+            root.style.backgroundColor = nextTheme === 'dark' ? '#0f172a' : '#eef2f3';
+            root.style.colorScheme = nextTheme;
+
+            themeIcon.innerHTML = nextTheme === 'dark'
+                ? '<path d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,3.5A8.5,8.5 0 1,0 20.5,12A8.5,8.5 0 0,0 12,3.5Z" />'
+                : '<path d="M12,18C11.11,18 10.26,17.8 9.5,17.45C11.56,16.5 13,14.42 13,12C13,9.58 11.56,7.5 9.5,6.55C10.26,6.2 11.11,6 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z" />';
+
+            if (persist) saveAppPreferences();
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme')
+                || document.body.getAttribute('data-theme')
+                || 'light';
+            applyAppTheme(currentTheme === 'dark' ? 'light' : 'dark', true);
         });
 
         sweepToggle.addEventListener('click', () => {
@@ -3332,13 +3344,7 @@
             ? savedAppPreferences.theme
             : (systemPrefersDark ? 'dark' : 'light');
 
-        if (initialTheme === 'dark') {
-            document.body.setAttribute('data-theme', 'dark');
-            themeIcon.innerHTML = '<path d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,3.5A8.5,8.5 0 1,0 20.5,12A8.5,8.5 0 0,0 12,3.5Z" />';
-        } else {
-            document.body.setAttribute('data-theme', 'light');
-            themeIcon.innerHTML = '<path d="M12,18C11.11,18 10.26,17.8 9.5,17.45C11.56,16.5 13,14.42 13,12C13,9.58 11.56,7.5 9.5,6.55C10.26,6.2 11.11,6 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z" />';
-        }
+        applyAppTheme(initialTheme, false);
 
         // Recupera dados antes da primeira renderização para não recriar tarefas apagadas.
         loadScheduleTasks();

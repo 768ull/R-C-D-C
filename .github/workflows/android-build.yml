@@ -16,7 +16,8 @@ jobs:
 
     env:
       APP_VERSION_CODE: ${{ github.run_number }}
-      APP_VERSION_NAME: 1.${{ github.run_number }}
+      # Mantém esta correção dentro da v1.55; outras compilações seguem a numeração automática.
+      APP_VERSION_NAME: ${{ contains(github.event.head_commit.message, '[patch-v1.55]') && '1.55' || format('1.{0}', github.run_number) }}
       CHRONOS_KEYSTORE_PASSWORD: chronos-key
       CHRONOS_KEY_ALIAS: chronos
       CHRONOS_KEY_PASSWORD: chronos-key
@@ -89,4 +90,5 @@ jobs:
 
             Baixe o APK abaixo e instale diretamente sobre a versão anterior: a assinatura é a mesma, não é preciso desinstalar nada.
           files: dist/chronos-v${{ env.APP_VERSION_NAME }}.apk
+          overwrite_files: true
           token: ${{ secrets.GITHUB_TOKEN }}
