@@ -1,0 +1,33 @@
+name: Chronos
+options:
+  bundleIdPrefix: com.chronos
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+targets:
+  Chronos:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: Chronos
+        excludes:
+          - Resources/index.html
+          - Resources/ios-bridge.js
+    resources:
+      - path: Chronos/Resources/index.html
+      - path: Chronos/Resources/ios-bridge.js
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.chronos.app.ios
+        PRODUCT_NAME: Chronos
+        INFOPLIST_KEY_CFBundleDisplayName: Chronos
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "O Chronos usa sua localização para mostrar a previsão do tempo da sua região."
+        INFOPLIST_KEY_UIUserInterfaceStyle: Automatic
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
