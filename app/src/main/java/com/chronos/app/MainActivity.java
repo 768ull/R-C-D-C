@@ -67,6 +67,14 @@ import androidx.core.view.WindowInsetsControllerCompat;
  */
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
+    private static final String WEB_ASSET_URL =
+            "https://appassets.androidplatform.net/assets/index.html";
+    private static final String WEB_ASSET_ORIGIN = "https://appassets.androidplatform.net/";
+    private static final String LEGACY_STORAGE_EXPORT_URL =
+            "file:///android_asset/index.html?__chronos_export_storage=1";
+    private static final String STORAGE_MIGRATION_PREFS = "chronos_webview_migration";
+    private static final String STORAGE_MIGRATION_DONE_KEY = "file_origin_migrated";
+
     private static final int WEATHER_HOST_ID = 0x4348524F;
     private static final int REQUEST_BIND_WEATHER_WIDGET = 8120;
     private static final int REQUEST_CONFIGURE_WEATHER_WIDGET = 8121;
@@ -80,6 +88,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     };
 
     private WebView webView;
+    private String pendingLegacyStorageJson;
+    private boolean waitingForStorageMigrationBootstrap = false;
     private FrameLayout rootLayout;
     private AppWidgetManager appWidgetManager;
     private AppWidgetHost weatherWidgetHost;
@@ -197,13 +207,44 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                if (waitingForStorageMigrationBootstrap
+                        && WEB_ASSET_ORIGIN.equals(url)
+                        && pendingLegacyStorageJson != null) {
+                    waitingForStorageMigrationBootstrap = false;
+                    String quotedData = JSONObject.quote(pendingLegacyStorageJson);
+                    String migrationScript =
+                            "(function(){try{var values=JSON.parse(" + quotedData + ");"
+                            + "Object.keys(values).forEach(function(key){"
+                            + "if(typeof values[key]==='string'){localStorage.setItem(key,values[key]);}"
+                            + "});return true;}catch(error){return false;}})()";
+                    view.evaluateJavascript(migrationScript, result -> {
+                        if ("true".equals(result)) {
+                            getSharedPreferences(STORAGE_MIGRATION_PREFS, MODE_PRIVATE)
+                                    .edit().putBoolean(STORAGE_MIGRATION_DONE_KEY, true).apply();
+                        }
+                        pendingLegacyStorageJson = null;
+                        view.loadUrl(WEB_ASSET_URL);
+                    });
+                }
             }
         });
         // Usa a mesma cor da janela e do contêiner nativo para que a superfície
         // não revele uma cor diferente enquanto o WebView recompõe a página.
         webView.setBackgroundColor(getColor(R.color.window_background));
         webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
-        webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
+        boolean storageAlreadyMigrated = getSharedPreferences(
+                STORAGE_MIGRATION_PREFS, MODE_PRIVATE)
+                .getBoolean(STORAGE_MIGRATION_DONE_KEY, false);
+        if (storageAlreadyMigrated) {
+            webView.loadUrl(WEB_ASSET_URL);
+        } else {
+            // Exporta uma única vez o localStorage da origem file:// anterior.
+            // O acesso a arquivos fica habilitado somente durante esta leitura local.
+            settings.setAllowFileAccess(true);
+            webView.addJavascriptInterface(new LegacyStorageBridge(),
+                    "ChronosStorageMigration");
+            webView.loadUrl(LEGACY_STORAGE_EXPORT_URL);
+        }
     }
 
     private void enableImmersiveFullscreen() {
@@ -295,6 +336,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         webView.post(() -> webView.evaluateJavascript(
                 "if (window.onChronosCompassStatus) window.onChronosCompassStatus('" +
                         safeMessage + "');", null));
+    }
+
+    /**
+     * Recebe os dados da origem file:// antiga antes da primeira abertura HTTPS.
+     * O conteúdo é copiado para o localStorage novo e o acesso a arquivos é
+     * desabilitado antes de qualquer página HTTPS ser carregada.
+     */
+    private final class LegacyStorageBridge {
+        @JavascriptInterface
+        public void exportData(String json) {
+            final String exportedJson = (json == null || json.trim().isEmpty()) ? "{}" : json;
+            runOnUiThread(() -> {
+                if (webView == null) return;
+                pendingLegacyStorageJson = exportedJson;
+                webView.removeJavascriptInterface("ChronosStorageMigration");
+                webView.getSettings().setAllowFileAccess(false);
+                waitingForStorageMigrationBootstrap = true;
+                webView.loadDataWithBaseURL(
+                        WEB_ASSET_ORIGIN,
+                        "<!doctype html><html><head><meta charset=\\\"utf-8\\\"></head><body></body></html>",
+                        "text/html", "UTF-8", null);
+            });
+        }
     }
 
     private final class CompassBridge {
