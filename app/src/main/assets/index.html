@@ -4,6 +4,26 @@
     <meta charset="UTF-8">
     <!-- Bloqueia o zoom nativo do navegador tanto no carregamento quanto por gestos de pinça -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Migração única: exporta os dados antigos antes de carregar na origem HTTPS. -->
+    <script>
+        (function () {
+            if (window.location.search.indexOf('__chronos_export_storage=1') === -1) return;
+            var values = {};
+            try {
+                for (var i = 0; i < window.localStorage.length; i++) {
+                    var key = window.localStorage.key(i);
+                    values[key] = window.localStorage.getItem(key);
+                }
+            } catch (error) {
+                // Exporta os itens que puderam ser lidos; a página nova continuará funcionando.
+            }
+            if (window.ChronosStorageMigration
+                    && typeof window.ChronosStorageMigration.exportData === 'function') {
+                window.ChronosStorageMigration.exportData(JSON.stringify(values));
+            }
+            window.stop();
+        })();
+    </script>
     <!-- Aplica o tema salvo antes do primeiro paint para evitar um flash do tema claro. -->
     <script>
         (function () {
