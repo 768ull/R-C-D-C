@@ -967,72 +967,77 @@
         .leaflet-control-attribution { font-size:10px !important; }
         @media (max-width:370px) { .map-search-button, .map-reset-button { padding:11px 10px; font-size:0.76rem; } .map-search-input { padding:11px 10px; } }
 
-        /* --- ABA CLIMA: ACESSO AO APLICATIVO NATIVO DO FABRICANTE --- */
+        /* --- ABA CLIMA: PREVISÃO INDEPENDENTE DO FABRICANTE --- */
         .weather-view {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             width: 100%;
             height: 100%;
-            padding: 12px 0;
+            padding: 10px 0 16px;
             overflow-y: auto;
             touch-action: pan-y;
         }
-
         .weather-card {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: stretch;
             gap: 14px;
             width: 100%;
-            padding: 28px 20px;
+            padding: 22px 16px;
             border-radius: 20px;
             border: 1px solid var(--clock-border);
             background: var(--clock-bg);
             box-shadow: var(--clock-shadow);
-            text-align: center;
+            text-align: left;
         }
-
-        .weather-symbol {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 82px;
-            height: 82px;
-            border-radius: 26px;
-            color: var(--accent-color);
-            background: var(--glass-bg);
+        .weather-eyebrow { font-size: 0.7rem; font-weight: 800; letter-spacing: 1.4px; opacity: 0.58; text-align: center; }
+        .weather-title { font-size: 1.2rem; font-weight: 800; text-align: center; }
+        .weather-description { margin: 0; font-size: 0.82rem; line-height: 1.5; opacity: 0.68; text-align: center; }
+        .weather-search-row { display: flex; width: 100%; gap: 8px; }
+        .weather-city-input {
+            flex: 1; min-width: 0; padding: 12px 13px; border: 1px solid var(--clock-border);
+            border-radius: 12px; background: var(--glass-bg); color: var(--text-color);
+            font: inherit; font-size: 0.82rem; outline: none;
         }
-
-        .weather-symbol svg { width: 48px; height: 48px; fill: currentColor; }
-        .weather-widget-slot {
-            position: relative; width: 100%; min-height: 260px;
-            border: 1px solid var(--clock-border); border-radius: 16px;
-            background: var(--glass-bg); overflow: hidden;
+        .weather-action-button {
+            padding: 12px 14px; border: 0; border-radius: 12px; background: var(--accent-color);
+            color: #fff; font-size: 0.82rem; font-weight: 750; cursor: pointer; white-space: nowrap;
         }
-        .weather-widget-placeholder {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 12px; min-height: 260px; padding: 24px; color: var(--text-color);
-            opacity: 0.68; font-size: 0.82rem; line-height: 1.45; text-align: center;
+        .weather-city-results { display: flex; flex-direction: column; gap: 7px; width: 100%; }
+        .weather-city-option {
+            width: 100%; padding: 11px 12px; border: 1px solid var(--clock-border);
+            border-radius: 12px; background: var(--glass-bg); color: var(--text-color);
+            text-align: left; font: inherit; font-size: 0.82rem; cursor: pointer;
         }
-        .weather-placeholder-icon { font-size: 2.8rem; line-height: 1; }
-        .weather-eyebrow { font-size: 0.7rem; font-weight: 800; letter-spacing: 1.4px; opacity: 0.58; }
-        .weather-title { font-size: 1.2rem; font-weight: 800; }
-        .weather-description { max-width: 290px; font-size: 0.82rem; line-height: 1.5; opacity: 0.68; }
-        .weather-open-button {
-            width: 100%;
-            max-width: 260px;
-            padding: 13px 18px;
-            border: 0;
-            border-radius: 14px;
-            background: var(--accent-color);
-            color: #ffffff;
-            font-size: 0.9rem;
-            font-weight: 750;
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
+        .weather-city-option small { display: block; margin-top: 3px; opacity: 0.62; font-size: 0.72rem; }
+        .weather-current-panel {
+            width: 100%; padding: 18px 14px; border: 1px solid var(--clock-border);
+            border-radius: 17px; background: var(--glass-bg); text-align: center;
         }
-        .weather-status { min-height: 2.3em; font-size: 0.76rem; line-height: 1.4; opacity: 0.7; }
+        .weather-location-name { font-size: 0.88rem; font-weight: 750; }
+        .weather-condition-icon { margin: 7px 0 0; font-size: 2.7rem; line-height: 1.15; }
+        .weather-temperature { font-size: 3rem; font-weight: 800; line-height: 1.1; letter-spacing: -1.5px; }
+        .weather-condition-label { margin-top: 4px; font-size: 0.9rem; font-weight: 650; }
+        .weather-feels-like { margin-top: 4px; font-size: 0.76rem; opacity: 0.66; }
+        .weather-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 16px; }
+        .weather-detail { padding: 9px 5px; border-radius: 11px; background: var(--clock-bg); font-size: 0.7rem; opacity: 0.82; }
+        .weather-detail strong { display: block; margin-top: 4px; font-size: 0.82rem; opacity: 1; }
+        .weather-forecast-title { margin: 2px 0 0; font-size: 0.9rem; font-weight: 800; }
+        .weather-forecast-list { display: flex; flex-direction: column; gap: 7px; width: 100%; }
+        .weather-day-row {
+            display: grid; grid-template-columns: minmax(0, 1.2fr) auto minmax(72px, 0.9fr) auto;
+            gap: 8px; align-items: center; padding: 10px 11px;
+            border: 1px solid var(--clock-border); border-radius: 12px;
+            background: var(--glass-bg); font-size: 0.76rem;
+        }
+        .weather-day-name { font-weight: 700; }
+        .weather-day-icon { font-size: 1.2rem; }
+        .weather-day-temps { text-align: right; white-space: nowrap; }
+        .weather-day-rain { font-size: 0.68rem; opacity: 0.65; text-align: right; }
+        .weather-status { min-height: 2.3em; font-size: 0.76rem; line-height: 1.4; opacity: 0.7; text-align: center; }
+        .weather-attribution { font-size: 0.68rem; opacity: 0.58; text-align: center; }
+        .weather-attribution a { color: inherit; }
 
         /* --- ABA BÚSSOLA --- */
         .compass-view {
@@ -1418,22 +1423,27 @@
         <div id="tab-weather-content" class="tab-content">
             <div class="weather-view">
                 <div class="weather-card">
-                    <div class="weather-symbol" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M6.5 20A4.5 4.5 0 0 1 6 11a6.5 6.5 0 0 1 12.7 1.7A3.7 3.7 0 0 1 18 20H6.5zm0-2H18a1.7 1.7 0 0 0 .2-3.4l-1.2-.1.1-1.2A4.5 4.5 0 0 0 8 12l-.2 1-1-.1A2.5 2.5 0 0 0 6.5 18zM7 3h2v3H7V3zm9.3 1.1 1.4 1.4-2.1 2.1-1.4-1.4 2.1-2.1zM3.3 6.5l1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1z"/>
-                        </svg>
+                    <div class="weather-eyebrow">PREVISÃO DO TEMPO</div>
+                    <div class="weather-title">Clima no Chronos</div>
+                    <p class="weather-description">Pesquise uma cidade para consultar a temperatura atual e a previsão dos próximos dias. Funciona sem depender do aplicativo de clima do fabricante.</p>
+                    <div class="weather-search-row">
+                        <input id="weather-city-input" class="weather-city-input" type="search"
+                            placeholder="Cidade, estado ou país" autocomplete="off" />
+                        <button class="weather-action-button" id="weather-search-button">Buscar</button>
                     </div>
-                    <div class="weather-eyebrow">CLIMA DO SEU TELEFONE</div>
-                    <div class="weather-title">Previsão oficial do sistema</div>
-                    <p class="weather-description">O Chronos vai exibir aqui o widget oficial do Daily Weather da Transsion. A previsão, a localização e a atualização são fornecidas pelo próprio serviço de clima do telefone.</p>
-                    <div class="weather-widget-slot" id="weather-widget-slot">
-                        <div class="weather-widget-placeholder" id="weather-widget-placeholder">
-                            <span class="weather-placeholder-icon">☀</span>
-                            <span>O widget oficial do clima aparecerá aqui depois de conectado.</span>
-                        </div>
+                    <div id="weather-city-results" class="weather-city-results" hidden></div>
+                    <div id="weather-current-panel" class="weather-current-panel">
+                        <div class="weather-condition-icon">🌤️</div>
+                        <div class="weather-condition-label">Escolha uma cidade</div>
+                        <div class="weather-feels-like">A previsão aparecerá aqui.</div>
                     </div>
-                    <button class="weather-open-button" id="weather-connect-button">Conectar clima do telefone</button>
-                    <div class="weather-status" id="weather-status">O Chronos vai vincular o widget oficial do sistema. O Android pedirá sua autorização.</div>
+                    <div id="weather-forecast-section" hidden>
+                        <div class="weather-forecast-title">Próximos dias</div>
+                        <div id="weather-forecast-list" class="weather-forecast-list"></div>
+                    </div>
+                    <button class="weather-action-button" id="weather-refresh-button" hidden>Atualizar previsão</button>
+                    <div class="weather-status" id="weather-status">Digite uma cidade para começar.</div>
+                    <div class="weather-attribution">Dados meteorológicos por <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></div>
                 </div>
             </div>
         </div>
@@ -1579,10 +1589,6 @@
 
         function clearMainTabs() {
             stopCompassSensor();
-            if (window.ChronosCompass && typeof window.ChronosCompass.setWeatherTabVisible === 'function') {
-                window.ChronosCompass.setWeatherTabVisible(false);
-            }
-
             [navClock, navCalendar, navDays, navTimer, navCalc, navCompass, navWeather, navMap].forEach(n => n.classList.remove('active'));
             [tabClockContent, tabCalendarContent, tabDaysContent, tabTimerContent, tabCalcContent, tabCompassContent, tabWeatherContent, tabMapContent].forEach(t => t.classList.remove('active'));
             document.getElementById('dropdown-list').classList.remove('show');
@@ -1634,9 +1640,7 @@
             clearMainTabs();
             navWeather.classList.add('active');
             tabWeatherContent.classList.add('active');
-            const bridge = window.ChronosCompass;
-            if (bridge && typeof bridge.setWeatherTabVisible === 'function') bridge.setWeatherTabVisible(true);
-            window.setTimeout(positionWeatherWidget, 100);
+            loadSavedWeatherLocation();
         });
 
         navMap.addEventListener('click', () => {
@@ -1647,36 +1651,221 @@
         });
 
         const weatherStatus = document.getElementById('weather-status');
-        const weatherWidgetSlot = document.getElementById('weather-widget-slot');
-        const weatherWidgetPlaceholder = document.getElementById('weather-widget-placeholder');
-        const weatherConnectButton = document.getElementById('weather-connect-button');
+        const weatherCityInput = document.getElementById('weather-city-input');
+        const weatherSearchButton = document.getElementById('weather-search-button');
+        const weatherCityResults = document.getElementById('weather-city-results');
+        const weatherCurrentPanel = document.getElementById('weather-current-panel');
+        const weatherForecastSection = document.getElementById('weather-forecast-section');
+        const weatherForecastList = document.getElementById('weather-forecast-list');
+        const weatherRefreshButton = document.getElementById('weather-refresh-button');
+        const WEATHER_LOCATION_KEY = 'chronos-weather-location';
+        let selectedWeatherLocation = null;
 
-        function positionWeatherWidget() {
-            const bridge = window.ChronosCompass;
-            if (!bridge || typeof bridge.setWeatherWidgetBounds !== 'function') return;
-            const rect = weatherWidgetSlot.getBoundingClientRect();
-            bridge.setWeatherWidgetBounds(rect.left, rect.top, rect.width, rect.height);
+        function setWeatherStatus(message) {
+            weatherStatus.textContent = message;
         }
 
-        window.onChronosWeatherStatus = function(message, connected) {
-            weatherStatus.textContent = message;
-            weatherWidgetPlaceholder.style.display = connected ? 'none' : 'flex';
-            weatherConnectButton.textContent = connected ? 'Widget oficial conectado' : 'Conectar clima do telefone';
-            if (connected) window.setTimeout(positionWeatherWidget, 80);
-        };
-
-        weatherConnectButton.addEventListener('click', () => {
-            const bridge = window.ChronosCompass;
-            if (!bridge || typeof bridge.connectWeatherWidget !== 'function') {
-                weatherStatus.textContent = 'A integração nativa não está disponível nesta versão do Chronos.';
+        function searchWeatherCity() {
+            const query = weatherCityInput.value.trim();
+            if (!query) {
+                setWeatherStatus('Digite o nome de uma cidade para pesquisar.');
                 return;
             }
-            weatherStatus.textContent = 'Procurando o widget oficial de clima do fabricante…';
-            bridge.connectWeatherWidget();
-        });
+            const bridge = window.ChronosCompass;
+            if (!bridge || typeof bridge.searchWeatherCity !== 'function') {
+                setWeatherStatus('A consulta do clima não está disponível nesta versão.');
+                return;
+            }
+            weatherCityResults.innerHTML = '';
+            weatherCityResults.hidden = false;
+            setWeatherStatus('Pesquisando cidades…');
+            bridge.searchWeatherCity(query);
+        }
 
-        window.addEventListener('resize', positionWeatherWidget);
-        window.addEventListener('scroll', positionWeatherWidget, true);
+        function loadWeatherForLocation(location) {
+            const bridge = window.ChronosCompass;
+            if (!bridge || typeof bridge.fetchWeather !== 'function') {
+                setWeatherStatus('A consulta do clima não está disponível nesta versão.');
+                return;
+            }
+            selectedWeatherLocation = location;
+            weatherCityResults.hidden = true;
+            weatherRefreshButton.hidden = false;
+            setWeatherStatus('Carregando previsão para ' + location.name + '…');
+            bridge.fetchWeather(
+                Number(location.latitude),
+                Number(location.longitude),
+                location.name || '',
+                location.admin1 || '',
+                location.country || ''
+            );
+        }
+
+        function loadSavedWeatherLocation() {
+            if (selectedWeatherLocation) {
+                loadWeatherForLocation(selectedWeatherLocation);
+                return;
+            }
+            try {
+                const saved = localStorage.getItem(WEATHER_LOCATION_KEY);
+                if (!saved) return;
+                const location = JSON.parse(saved);
+                if (!location || !Number.isFinite(Number(location.latitude))
+                        || !Number.isFinite(Number(location.longitude))) return;
+                selectedWeatherLocation = location;
+                weatherCityInput.value = location.name || '';
+                loadWeatherForLocation(location);
+            } catch (e) {
+                console.warn('Não foi possível restaurar a cidade do clima:', e);
+            }
+        }
+
+        window.onChronosWeatherCities = function(cities, error) {
+            weatherCityResults.innerHTML = '';
+            weatherCityResults.hidden = false;
+            if (error) {
+                setWeatherStatus(error);
+                return;
+            }
+            if (!cities || !cities.length) {
+                setWeatherStatus('Nenhuma cidade encontrada.');
+                return;
+            }
+            cities.forEach(city => {
+                const option = document.createElement('button');
+                option.type = 'button';
+                option.className = 'weather-city-option';
+                const title = document.createElement('span');
+                title.textContent = city.name || 'Cidade';
+                const subtitle = document.createElement('small');
+                subtitle.textContent = [city.admin1, city.country].filter(Boolean).join(' · ');
+                option.appendChild(title);
+                option.appendChild(subtitle);
+                option.addEventListener('click', () => {
+                    const location = {
+                        name: city.name || 'Cidade',
+                        admin1: city.admin1 || '',
+                        country: city.country || '',
+                        latitude: Number(city.latitude),
+                        longitude: Number(city.longitude)
+                    };
+                    selectedWeatherLocation = location;
+                    weatherCityInput.value = location.name;
+                    try { localStorage.setItem(WEATHER_LOCATION_KEY, JSON.stringify(location)); } catch (e) {}
+                    loadWeatherForLocation(location);
+                });
+                weatherCityResults.appendChild(option);
+            });
+            setWeatherStatus('Selecione a cidade correta na lista.');
+        };
+
+        function getWeatherDescription(code) {
+            const descriptions = {
+                0: ['Céu limpo', '☀️'], 1: ['Predominantemente limpo', '🌤️'],
+                2: ['Parcialmente nublado', '⛅'], 3: ['Nublado', '☁️'],
+                45: ['Neblina', '🌫️'], 48: ['Neblina com geada', '🌫️'],
+                51: ['Garoa fraca', '🌦️'], 53: ['Garoa moderada', '🌦️'],
+                55: ['Garoa intensa', '🌧️'], 56: ['Garoa congelante fraca', '🌧️'],
+                57: ['Garoa congelante intensa', '🌧️'], 61: ['Chuva fraca', '🌦️'],
+                63: ['Chuva moderada', '🌧️'], 65: ['Chuva forte', '🌧️'],
+                66: ['Chuva congelante fraca', '🌧️'], 67: ['Chuva congelante forte', '🌧️'],
+                71: ['Neve fraca', '🌨️'], 73: ['Neve moderada', '🌨️'],
+                75: ['Neve forte', '❄️'], 77: ['Grãos de neve', '❄️'],
+                80: ['Pancadas fracas', '🌦️'], 81: ['Pancadas moderadas', '🌧️'],
+                82: ['Pancadas fortes', '⛈️'], 85: ['Pancadas de neve fracas', '🌨️'],
+                86: ['Pancadas de neve fortes', '❄️'], 95: ['Trovoadas', '⛈️'],
+                96: ['Trovoadas com granizo', '⛈️'], 99: ['Trovoadas fortes com granizo', '⛈️']
+            };
+            return descriptions[Number(code)] || ['Condição não disponível', '🌡️'];
+        }
+
+        function roundedWeatherValue(value) {
+            const number = Number(value);
+            return Number.isFinite(number) ? Math.round(number) : '—';
+        }
+
+        function renderWeatherForecast(data) {
+            if (!data || !data.current || !data.daily) {
+                setWeatherStatus('O serviço não retornou dados meteorológicos válidos.');
+                return;
+            }
+            const current = data.current;
+            const location = data.chronos_location || selectedWeatherLocation || {};
+            const condition = getWeatherDescription(current.weather_code);
+            weatherCurrentPanel.innerHTML = [
+                '<div class="weather-location-name"></div>',
+                '<div class="weather-condition-icon"></div>',
+                '<div class="weather-temperature"></div>',
+                '<div class="weather-condition-label"></div>',
+                '<div class="weather-feels-like"></div>',
+                '<div class="weather-details">',
+                '<div class="weather-detail">Sensação térmica<strong id="weather-detail-feels"></strong></div>',
+                '<div class="weather-detail">Umidade<strong id="weather-detail-humidity"></strong></div>',
+                '<div class="weather-detail">Vento<strong id="weather-detail-wind"></strong></div>',
+                '</div>'
+            ].join('');
+            weatherCurrentPanel.querySelector('.weather-location-name').textContent =
+                [location.name, location.admin1, location.country].filter(Boolean).join(' · ');
+            weatherCurrentPanel.querySelector('.weather-condition-icon').textContent = condition[1];
+            weatherCurrentPanel.querySelector('.weather-temperature').textContent =
+                roundedWeatherValue(current.temperature_2m) + '°';
+            weatherCurrentPanel.querySelector('.weather-condition-label').textContent = condition[0];
+            weatherCurrentPanel.querySelector('.weather-feels-like').textContent =
+                'Sensação de ' + roundedWeatherValue(current.apparent_temperature) + '°';
+            document.getElementById('weather-detail-feels').textContent =
+                roundedWeatherValue(current.apparent_temperature) + '°C';
+            document.getElementById('weather-detail-humidity').textContent =
+                roundedWeatherValue(current.relative_humidity_2m) + '%';
+            document.getElementById('weather-detail-wind').textContent =
+                roundedWeatherValue(current.wind_speed_10m) + ' km/h';
+
+            weatherForecastList.innerHTML = '';
+            const days = data.daily;
+            const count = Math.min(5, (days.time || []).length);
+            for (let i = 0; i < count; i++) {
+                const row = document.createElement('div');
+                row.className = 'weather-day-row';
+                const dayName = document.createElement('span');
+                dayName.className = 'weather-day-name';
+                const date = new Date(days.time[i] + 'T12:00:00');
+                dayName.textContent = i === 0 ? 'Hoje' :
+                    date.toLocaleDateString('pt-BR', { weekday: 'short' });
+                const dayCondition = getWeatherDescription(days.weather_code[i]);
+                const dayIcon = document.createElement('span');
+                dayIcon.className = 'weather-day-icon';
+                dayIcon.textContent = dayCondition[1];
+                const temps = document.createElement('span');
+                temps.className = 'weather-day-temps';
+                temps.textContent = roundedWeatherValue(days.temperature_2m_max[i]) + '° / ' +
+                    roundedWeatherValue(days.temperature_2m_min[i]) + '°';
+                const rain = document.createElement('span');
+                rain.className = 'weather-day-rain';
+                rain.textContent = roundedWeatherValue(days.precipitation_probability_max[i]) + '% chuva';
+                row.append(dayName, dayIcon, temps, rain);
+                weatherForecastList.appendChild(row);
+            }
+            weatherForecastSection.hidden = false;
+            setWeatherStatus('Previsão atualizada. Consulte novamente quando quiser.');
+        }
+
+        window.onChronosWeatherForecast = function(data, error) {
+            if (error) {
+                setWeatherStatus(error);
+                return;
+            }
+            renderWeatherForecast(data);
+        };
+
+        weatherSearchButton.addEventListener('click', searchWeatherCity);
+        weatherCityInput.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                searchWeatherCity();
+            }
+        });
+        weatherRefreshButton.addEventListener('click', () => {
+            if (selectedWeatherLocation) loadWeatherForLocation(selectedWeatherLocation);
+        });
 
         // --- OPENSTREETMAP + LEAFLET: MAPA ABERTO SEM CHAVE ---
         const mapStatus = document.getElementById('map-status');
