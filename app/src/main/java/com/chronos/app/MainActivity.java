@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float weatherWidgetHeight = 0f;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService mapSearchExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService weatherExecutor = Executors.newSingleThreadExecutor();
     private volatile long lastMapSearchTimeMs = 0L;
 
     // O WebView pode precisar de um novo ciclo de layout/desenho após voltar
@@ -152,7 +153,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                restoreWeatherWidgetIfAvailable();
             }
         });
         // Usa a mesma cor da janela e do contêiner nativo para que a superfície
@@ -352,6 +352,80 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             runOnUiThread(() -> layoutWeatherWidget());
         }
 
+
+        @JavascriptInterface
+        public void searchWeatherCity(String query) {
+            final String safeQuery = query == null ? "" : query.trim();
+            if (safeQuery.isEmpty()) {
+                sendWeatherCityResults(new JSONArray(), "Digite o nome de uma cidade.");
+                return;
+            }
+            weatherExecutor.execute(() -> {
+                try {
+                    String encoded = URLEncoder.encode(safeQuery, StandardCharsets.UTF_8.name());
+                    JSONObject response = requestWeatherJson(
+                            "https://geocoding-api.open-meteo.com/v1/search?count=6"
+                                    + "&language=pt&format=json&name=" + encoded);
+                    JSONArray source = response.optJSONArray("results");
+                    JSONArray cities = new JSONArray();
+                    if (source != null) {
+                        for (int i = 0; i < source.length() && i < 6; i++) {
+                            JSONObject item = source.optJSONObject(i);
+                            if (item == null) continue;
+                            JSONObject city = new JSONObject();
+                            city.put("name", item.optString("name", "Cidade"));
+                            city.put("admin1", item.optString("admin1", ""));
+                            city.put("country", item.optString("country", ""));
+                            city.put("country_code", item.optString("country_code", ""));
+                            city.put("latitude", item.optDouble("latitude", Double.NaN));
+                            city.put("longitude", item.optDouble("longitude", Double.NaN));
+                            cities.put(city);
+                        }
+                    }
+                    sendWeatherCityResults(cities,
+                            cities.length() == 0 ? "Nenhuma cidade encontrada. Tente informar também o estado ou país." : null);
+                } catch (Exception e) {
+                    sendWeatherCityResults(new JSONArray(),
+                            "Não foi possível pesquisar a cidade. Verifique sua conexão e tente novamente.");
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void fetchWeather(double latitude, double longitude, String cityName,
+                                 String admin1, String country) {
+            if (Double.isNaN(latitude) || Double.isInfinite(latitude)
+                    || Double.isNaN(longitude) || Double.isInfinite(longitude)
+                    || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+                sendWeatherForecast(null, "A localização escolhida é inválida.");
+                return;
+            }
+            final String safeName = cityName == null ? "Local selecionado" : cityName;
+            final String safeAdmin1 = admin1 == null ? "" : admin1;
+            final String safeCountry = country == null ? "" : country;
+            weatherExecutor.execute(() -> {
+                try {
+                    String coordinates = String.format(Locale.US,
+                            "latitude=%.5f&longitude=%.5f", latitude, longitude);
+                    String address = "https://api.open-meteo.com/v1/forecast?"
+                            + coordinates
+                            + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m"
+                            + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+                            + "&forecast_days=5&timezone=auto";
+                    JSONObject forecast = requestWeatherJson(address);
+                    JSONObject location = new JSONObject();
+                    location.put("name", safeName);
+                    location.put("admin1", safeAdmin1);
+                    location.put("country", safeCountry);
+                    forecast.put("chronos_location", location);
+                    sendWeatherForecast(forecast, null);
+                } catch (Exception e) {
+                    sendWeatherForecast(null,
+                            "Não foi possível carregar a previsão agora. Confira a internet e tente novamente.");
+                }
+            });
+        }
+
         @JavascriptInterface
         public void setWeatherTabVisible(boolean visible) {
             weatherTabVisible = visible;
@@ -361,6 +435,58 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             });
         }
+    }
+
+
+    private JSONObject requestWeatherJson(String address) throws Exception {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(address).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(12000);
+            connection.setReadTimeout(12000);
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("User-Agent",
+                    "Chronos/1.25 (+https://github.com/768ull/R-C-D-C)");
+
+            int responseCode = connection.getResponseCode();
+            InputStream stream = responseCode >= 200 && responseCode < 300
+                    ? connection.getInputStream() : connection.getErrorStream();
+            if (stream == null) {
+                throw new IllegalStateException("Resposta vazia do serviço meteorológico.");
+            }
+
+            StringBuilder body = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) body.append(line);
+            }
+            if (responseCode < 200 || responseCode >= 300) {
+                throw new IllegalStateException("O serviço meteorológico respondeu HTTP " + responseCode + ".");
+            }
+            return new JSONObject(body.toString());
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }
+
+    private void sendWeatherCityResults(JSONArray cities, String error) {
+        if (webView == null) return;
+        String data = cities == null ? "[]" : cities.toString();
+        String errorJson = error == null ? "null" : JSONObject.quote(error);
+        webView.post(() -> webView.evaluateJavascript(
+                "if (window.onChronosWeatherCities) window.onChronosWeatherCities("
+                        + data + "," + errorJson + ");", null));
+    }
+
+    private void sendWeatherForecast(JSONObject forecast, String error) {
+        if (webView == null) return;
+        String data = forecast == null ? "null" : forecast.toString();
+        String errorJson = error == null ? "null" : JSONObject.quote(error);
+        webView.post(() -> webView.evaluateJavascript(
+                "if (window.onChronosWeatherForecast) window.onChronosWeatherForecast("
+                        + data + "," + errorJson + ");", null));
     }
 
     private SharedPreferences weatherPreferences() {
@@ -759,6 +885,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             webView = null;
         }
         mapSearchExecutor.shutdownNow();
+        weatherExecutor.shutdownNow();
         super.onDestroy();
     }
 }
